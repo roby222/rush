@@ -7,19 +7,19 @@
 android
 
 ## Users
-Commuters with a recurring trip at a fixed time (the author's case: home to the gym, Mon/Wed/Fri late
+Commuters with recurring trips at fixed times (the author's case: home to the gym, Mon/Wed/Fri late
 afternoon), deciding how and when to leave. Built first for the author, meant to work for other people too:
 it must be understandable at first launch without explanation.
 
 ## Product Purpose
-Watch a recurring trip so the user does not have to. When traffic is normal, Rush stays silent. When it is
+Watch the user's recurring trips so the user does not have to. When traffic is normal, Rush stays silent. When it is
 not, Rush says how bad it is and where the problem is, early enough to act: leave earlier, take the
 motorbike, or try another road.
 
 Success: the user never opens a map app "just to check", and is never surprised by a jam Rush could have seen.
 
 ## Positioning
-A scheduled, single-trip watcher rather than a navigator: it speaks only when the usual trip is not usual.
+A scheduled watcher of a few recurring trips rather than a navigator: it speaks only when a usual trip is not usual.
 
 ## Operating Context
 - Two touchpoints: the scheduled notification (read in a hurry, before leaving) and the app, opened to

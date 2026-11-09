@@ -1,0 +1,86 @@
+package io.github.roby222.rush.ui
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.roby222.rush.R
+import io.github.roby222.rush.Trip
+
+private enum class Screen { HOME, TRIPS, EDITOR }
+
+/** The app shell: top bar and the three screens (Home → Trips → Editor), with system Back walking up. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RushApp(vm: MainViewModel, editor: TripEditorViewModel = viewModel()) {
+    var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
+    val home = vm.home.collectAsStateWithLifecycle().value ?: return
+    val draft by editor.draft.collectAsStateWithLifecycle()
+    val edit = { id: Int ->
+        editor.open(home.state.trips.firstOrNull { it.id == id } ?: Trip())
+        screen = Screen.EDITOR
+    }
+    Scaffold(topBar = {
+        TopAppBar(
+            title = {
+                Text(when (screen) {
+                    Screen.HOME -> "Rush"
+                    Screen.TRIPS -> stringResource(R.string.trips_title)
+                    Screen.EDITOR -> home.state.trips.firstOrNull { it.id == draft.id && draft.id != 0 }?.name
+                        ?: stringResource(R.string.new_trip)
+                })
+            },
+            navigationIcon = {
+                if (screen != Screen.HOME) IconButton(onClick = { screen = if (screen == Screen.EDITOR) Screen.TRIPS else Screen.HOME }) {
+                    Icon(painterResource(R.drawable.ic_back), contentDescription = stringResource(R.string.back))
+                }
+            },
+            actions = {
+                if (screen == Screen.HOME) IconButton(onClick = { screen = Screen.TRIPS }) {
+                    Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.trips_title))
+                }
+            },
+        )
+    }) { pad ->
+        Column(
+            Modifier.padding(pad).consumeWindowInsets(pad).imePadding()
+                .verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            when (screen) {
+                Screen.HOME -> HomeScreen(vm, home, onAdd = { edit(0) })
+                Screen.TRIPS -> {
+                    BackHandler { screen = Screen.HOME }
+                    TripsScreen(home.state.trips, onEdit = edit)
+                }
+                Screen.EDITOR -> {
+                    BackHandler { screen = Screen.TRIPS }
+                    TripEditorScreen(editor,
+                        onSaved = { id -> vm.show(id); screen = Screen.HOME },
+                        onDeleted = { screen = Screen.TRIPS })
+                }
+            }
+        }
+    }
+}

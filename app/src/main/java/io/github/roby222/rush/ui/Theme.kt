@@ -1,4 +1,4 @@
-package io.github.roby222.rush
+package io.github.roby222.rush.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape

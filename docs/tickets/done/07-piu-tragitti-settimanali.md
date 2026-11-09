@@ -10,18 +10,18 @@ Punti da decidere nel ticket (con la scelta registrata in `.ai/architecture.md`)
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Dopo l'aggiornamento dalla v0.2.0 l'app parte senza tragitti e invita ad aggiungerne uno; i dati della v0.2.0 sono ignorati e il vecchio allarme non scatta più
-- [ ] Aggiungere, modificare ed eliminare un tragitto dalle impostazioni; la ricerca di un luogo privilegia i risultati vicini all'altro luogo dello stesso tragitto
-- [ ] `nextTrigger` calcolato per tragitto, ognuno col suo allarme ed esito (test)
-- [ ] Salvando un tragitto alla stessa ora:minuto di un altro, con almeno un giorno in comune, l'editor mostra l'errore sotto l'ora col nome dell'altro tragitto e non salva (test)
-- [ ] Notifica e Home indicano il nome del tragitto ("Palestra: 24 min (+6 traffico)")
-- [ ] Home: il tragitto con il prossimo controllo o l'ultimo esito rilevante in primo piano, gli altri raggiungibili senza aprire le impostazioni (layout deciso con `.ai/design.md`)
-- [ ] "Controlla ora" controlla il tragitto mostrato; un controllo manuale continua a non annullare quelli pianificati
-- [ ] Riavvio, cambio d'ora o aggiornamento dell'app riprogrammano tutti i tragitti
-- [ ] Stringhe nuove in `values` e `values-it`
-- [ ] `.ai/product.md` (oggi dice "one recurring trip"), `.ai/architecture.md` e `.ai/design.md` aggiornati
+- [x] Dopo l'aggiornamento dalla v0.2.0 l'app parte senza tragitti e invita ad aggiungerne uno; i dati della v0.2.0 sono ignorati e il vecchio allarme non scatta più
+- [x] Aggiungere, modificare ed eliminare un tragitto dalle impostazioni; la ricerca di un luogo privilegia i risultati vicini all'altro luogo dello stesso tragitto
+- [x] `nextTrigger` calcolato per tragitto, ognuno col suo allarme ed esito (test)
+- [x] Salvando un tragitto alla stessa ora:minuto di un altro, con almeno un giorno in comune, l'editor mostra l'errore sotto l'ora col nome dell'altro tragitto e non salva (test)
+- [x] Notifica e Home indicano il nome del tragitto ("Palestra: 24 min (+6 traffico)")
+- [x] Home: il tragitto con il prossimo controllo o l'ultimo esito rilevante in primo piano, gli altri raggiungibili senza aprire le impostazioni (layout deciso con `.ai/design.md`)
+- [x] "Controlla ora" controlla il tragitto mostrato; un controllo manuale continua a non annullare quelli pianificati
+- [x] Riavvio, cambio d'ora o aggiornamento dell'app riprogrammano tutti i tragitti
+- [x] Stringhe nuove in `values` e `values-it`
+- [x] `.ai/product.md` (oggi dice "one recurring trip"), `.ai/architecture.md` e `.ai/design.md` aggiornati
 
 ## Piano di implementazione
 

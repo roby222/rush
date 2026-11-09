@@ -4,7 +4,7 @@ One file per subject; read the ones your task touches before editing.
 
 - [product.md](product.md): who uses Rush, what it promises, product principles. Read for any change to behavior, copy or notifications.
 - [design.md](design.md): visual system and screen patterns. Read for any UI change.
-- [architecture.md](architecture.md): data flow, TomTom API facts, storage, scheduling invariants. Read before touching `TomTom.kt`, `CheckWorker.kt`, `Scheduler.kt` or `Prefs.kt`.
+- [architecture.md](architecture.md): data flow, TomTom API facts, storage, scheduling invariants. Read before touching any Kotlin file: it says which layer a change belongs to.
 - [workflow.md](workflow.md): testing on the phone, git and releases, local issue tracker. Read before running the app, committing, or picking up a ticket.
 
 ## House rules

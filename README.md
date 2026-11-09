@@ -1,7 +1,7 @@
 # Rush
 
-A personal Android app that checks your commute before you leave. On the days and at the time you pick
-(default Mon/Wed/Fri 17:20) it asks TomTom for the live-traffic travel time between two places and sends a
+A personal Android app that checks your commutes before you leave. For each trip you save (for example
+"Gym", Mon/Wed/Fri 17:20) it asks TomTom for the live-traffic travel time at the chosen time and sends a
 notification with the time, the delay and any jams on the way.
 No backend: just AlarmManager, WorkManager and DataStore.
 
@@ -17,13 +17,15 @@ The UI is in English and Italian, following the device language.
 
 ## Features
 
-- **Scheduled check**: an exact alarm at the chosen time, on the chosen days; survives reboots, time zone
-  and clock changes.
+- **Several trips**: each with its own name, places, days, time and threshold, and its own exact alarm;
+  alarms survive reboots, time zone and clock changes. Two trips cannot share a minute on the same day.
+- **Home**: the trip with a recent problem (or the next one to be checked) in front, the others one chip away;
+  a notification opens its own trip.
 - **Live traffic**: travel time, delay and traffic sections (jams, road works, closures) from the TomTom
   Routing API. The time is colored by traffic level: green, orange, red.
 - **Threshold**: notify only when traffic adds at least N minutes (0 = always). "Controlla ora" (check now)
   and errors always notify.
-- **Local search**: once one place is saved, searching for the other one prefers results within 50 km of it,
+- **Local search**: once one place of a trip is set, searching for the other one prefers results within 50 km of it,
   so a bare street name finds the one in your city.
 - **System warnings**: if notifications, background running or exact alarms are not allowed, Home shows a
   warning with a one-tap fix; it disappears as soon as the setting is fixed.
@@ -48,23 +50,23 @@ Open the folder in Android Studio and press Run, or:
 ./gradlew testDebugUnitTest # unit tests
 ```
 
-On first launch: allow notifications, open **Impostazioni** (the gear), search for the departure and the
-destination, check the result and tap **Conferma**. Coordinates are saved once. If Home asks to let Rush run
-in the background, tap **Consenti**.
+On first launch: allow notifications and tap **Add trip**. Give the trip a name, search for the departure and
+the destination (check the result and tap **Confirm**), pick days and time, then **Save**. More trips, and
+edits, are under the gear. If Home asks to let Rush run in the background, tap **Allow**.
 
 ## Testing without waiting
 
 ```sh
 PKG=io.github.roby222.rush
 
-# scheduled alarm (look for "RTC_WAKEUP" and "origWhen")
-adb shell dumpsys alarm | grep -A4 $PKG
+# scheduled alarms, one "origWhen" per trip
+adb shell dumpsys alarm | grep -A1 "walarm\*:$PKG.CHECK"
 
-# run the check now, as if the alarm fired, and schedule the next one
-adb shell am broadcast -n $PKG/.AlarmReceiver -a $PKG.CHECK
+# run trip 1's check now, as if its alarm fired, and reschedule every trip
+adb shell am broadcast -n $PKG/.AlarmReceiver -a $PKG.CHECK --ei trip 1
 
-# simulate a reboot (reschedule only)
-adb shell am broadcast -n $PKG/.AlarmReceiver -a android.intent.action.BOOT_COMPLETED
+# reschedule only, as after a reboot (recent Android refuses BOOT_COMPLETED from the shell)
+adb shell am broadcast -n $PKG/.AlarmReceiver -a $PKG.RESCHEDULE
 
 # WorkManager job state
 adb shell dumpsys jobscheduler | grep -A6 $PKG
@@ -77,21 +79,27 @@ adb shell dumpsys deviceidle unforce
 adb logcat | grep -iE "rush|WM-"
 ```
 
-To check a real trigger: in Settings set the time 2 minutes from now and include today among the days.
+To check a real trigger: edit a trip, set its time 2 minutes from now and include today among the days.
 
-Scheduled and manual checks run in separate WorkManager queues: "Controlla ora" never cancels a scheduled
-check, and repeated taps run a single manual check.
+Every trip has its own WorkManager queues, scheduled and manual: "Check now" never cancels a scheduled
+check, no trip cancels another, and repeated taps run a single manual check.
 
 ## Structure
 
+MVVM: Compose screens → ViewModels → `TripRepository` → pure logic (covered by unit tests).
+
 | File | What it does |
 |------|--------------|
-| `TomTom.kt` | Search/Routing calls, JSON models, notification text, traffic level |
-| `CheckWorker.kt` | expedited worker: computes the check outcome, saves it, notifies |
-| `Scheduler.kt` | next trigger, `AlarmManager`, receiver for alarm/boot/time change |
-| `Prefs.kt` | DataStore: places, days, time, threshold, last result |
-| `MainActivity.kt` | Home and Settings screens (Compose) |
-| `Theme.kt` | colors and shapes: graphite/white surfaces, amber accent, traffic colors |
+| `ui/RushApp.kt` | app shell: top bar, Home → Trips → Editor, system Back |
+| `ui/HomeScreen.kt`, `ui/TripsScreen.kt`, `ui/TripEditorScreen.kt` | the three screens |
+| `ui/Components.kt`, `ui/Theme.kt` | verdict card, route list, buttons; colors and shapes |
+| `ui/MainViewModel.kt`, `ui/TripEditorViewModel.kt` | screen state and actions; the editor draft and its validation |
+| `TripRepository.kt` | the UI's only door to trips, checks and search; saving a trip reschedules its alarm |
+| `Prefs.kt` | DataStore: trips (JSON), last result per trip |
+| `Scheduler.kt` | next trigger, one alarm per trip, time clashes, featured trip, alarm receiver |
+| `CheckWorker.kt` | expedited worker: checks one trip, saves its result, notifies |
+| `TomTom.kt` | Search/Routing calls, JSON models, slowdowns by street, traffic level |
+| `MainActivity.kt` | hosts the UI and opens the trip of a tapped notification |
 
 Times follow the phone's time zone. The app is meant for sideloading: it uses `USE_EXACT_ALARM` and asks for
 the battery optimization exemption directly, both of which Google Play restricts.

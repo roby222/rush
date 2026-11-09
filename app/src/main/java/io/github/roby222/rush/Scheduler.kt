@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.datastore.preferences.core.edit
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
@@ -15,12 +16,21 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.Duration
+import java.time.Instant
 import java.time.ZonedDateTime
 
 const val ACTION_CHECK = "io.github.roby222.rush.CHECK"
-const val MANUAL_WORK = "check-manual"
+const val EXTRA_TRIP = "trip"
+
+/** A problem result stays in front on the Home for this long. */
+val FEATURED_PROBLEM_WINDOW: Duration = Duration.ofHours(3)
+
+fun scheduledWork(tripId: Int) = "check-$tripId"
+fun manualWork(tripId: Int) = "check-manual-$tripId"
 
 /** First occurrence strictly after [now] on one of [days] at hour:minute, or null if no days. */
 fun nextTrigger(now: ZonedDateTime, days: Set<DayOfWeek>, hour: Int, minute: Int): ZonedDateTime? =
@@ -30,45 +40,78 @@ fun nextTrigger(now: ZonedDateTime, days: Set<DayOfWeek>, hour: Int, minute: Int
         .map { it.atTime(hour, minute).atZone(now.zone) }
         .firstOrNull { it.isAfter(now) }
 
+/** Next alarm time per trip id; trips without days have none. */
+fun alarmPlan(trips: List<Trip>, now: ZonedDateTime): Map<Int, ZonedDateTime> =
+    trips.mapNotNull { t -> nextTrigger(now, t.days, t.hour, t.minute)?.let { t.id to it } }.toMap()
+
+/** Another trip checked at the same hour:minute on a shared day: two checks in one minute make no sense. */
+fun timeConflict(draft: Trip, trips: List<Trip>): Trip? = trips.firstOrNull {
+    it.id != draft.id && it.hour == draft.hour && it.minute == draft.minute && it.days.any { d -> d in draft.days }
+}
+
+/**
+ * The trip the Home shows first: the latest one with a problem (slowdown or failed check) in the last
+ * [FEATURED_PROBLEM_WINDOW], otherwise the one checked next, otherwise the first.
+ */
+fun featuredTrip(trips: List<Trip>, results: Map<Int, TripResult>, now: ZonedDateTime): Trip? {
+    val since = now.toInstant().minus(FEATURED_PROBLEM_WINDOW)
+    val problem = trips.mapNotNull { t -> results[t.id]?.let { t to it } }
+        .filter { (_, r) -> (r.check == null || r.check.level > 0) && !Instant.ofEpochMilli(r.lastAt).isBefore(since) }
+        .maxByOrNull { (_, r) -> r.lastAt }?.first
+    val plan = alarmPlan(trips, now)
+    return problem ?: trips.filter { it.id in plan }.minByOrNull { plan.getValue(it.id) } ?: trips.firstOrNull()
+}
+
 object Scheduler {
-    suspend fun schedule(ctx: Context) {
-        val s = ctx.settings()
+    // Same action and component for every trip: the request code (the trip id) tells the alarms apart.
+    private fun alarm(ctx: Context, tripId: Int) = PendingIntent.getBroadcast(
+        ctx, tripId,
+        Intent(ctx, AlarmReceiver::class.java).setAction(ACTION_CHECK).putExtra(EXTRA_TRIP, tripId),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    /** Sets one exact alarm per trip and cancels the alarms of trips that no longer exist. */
+    suspend fun scheduleAll(ctx: Context) {
         val am = ctx.getSystemService(AlarmManager::class.java)
-        val pi = PendingIntent.getBroadcast(
-            ctx, 0, Intent(ctx, AlarmReceiver::class.java).setAction(ACTION_CHECK),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val next = nextTrigger(ZonedDateTime.now(), s.days, s.hour, s.minute)
-        if (next == null) return am.cancel(pi)
-        val at = next.toInstant().toEpochMilli()
-        if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
-        } else {
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi) // inexact fallback
+        val prefs = ctx.store.data.first()
+        val plan = alarmPlan(prefs.trips(), ZonedDateTime.now())
+        // 0 is the single alarm of v0.2.0.
+        val stale = prefs[Keys.alarmIds].orEmpty().mapNotNull { it.toIntOrNull() }.toSet() + 0 - plan.keys
+        stale.forEach { am.cancel(alarm(ctx, it)) }
+        plan.forEach { (id, next) ->
+            val at = next.toInstant().toEpochMilli()
+            if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, alarm(ctx, id))
+            } else {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, alarm(ctx, id)) // inexact fallback
+            }
         }
+        ctx.store.edit { it[Keys.alarmIds] = plan.keys.map(Int::toString).toSet() }
     }
 
-    fun checkNow(ctx: Context, manual: Boolean) {
+    fun checkNow(ctx: Context, tripId: Int, manual: Boolean) {
         val req = OneTimeWorkRequestBuilder<CheckWorker>()
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .setConstraints(Constraints(requiredNetworkType = NetworkType.CONNECTED))
-            .setInputData(workDataOf("manual" to manual))
+            .setInputData(workDataOf("manual" to manual, EXTRA_TRIP to tripId))
             .build()
-        // Separate queues: a manual check never cancels the scheduled one. Repeated taps keep
-        // the manual check already queued or running instead of starting another.
+        // Queues per trip and per kind: a manual check never cancels a scheduled one, no trip cancels
+        // another, and repeated taps keep the manual check already queued or running.
         val wm = WorkManager.getInstance(ctx)
-        if (manual) wm.enqueueUniqueWork(MANUAL_WORK, ExistingWorkPolicy.KEEP, req)
-        else wm.enqueueUniqueWork("check", ExistingWorkPolicy.REPLACE, req)
+        if (manual) wm.enqueueUniqueWork(manualWork(tripId), ExistingWorkPolicy.KEEP, req)
+        else wm.enqueueUniqueWork(scheduledWork(tripId), ExistingWorkPolicy.REPLACE, req)
     }
 }
 
-/** Fires the check on alarm; reschedules on alarm, boot, clock/timezone change and app update. */
+/** Fires a trip's check on its alarm; reschedules every trip on alarm, boot, clock/timezone change and app update. */
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
-        if (intent.action == ACTION_CHECK) Scheduler.checkNow(ctx, manual = false)
+        val tripId = intent.getIntExtra(EXTRA_TRIP, 0)
+        // The v0.2.0 alarm has no trip: it only triggers the rescheduling that cancels it.
+        if (intent.action == ACTION_CHECK && tripId > 0) Scheduler.checkNow(ctx, tripId, manual = false)
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            try { Scheduler.schedule(ctx) } finally { pending.finish() }
+            try { Scheduler.scheduleAll(ctx) } finally { pending.finish() }
         }
     }
 }

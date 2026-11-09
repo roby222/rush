@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="settings">Impostazioni</string>
     <string name="back">Indietro</string>
     <string name="check_now">Controlla ora</string>
     <string name="checking">Controllo in corso…</string>
     <string name="next_check">Prossimo controllo automatico: %1$s</string>
     <string name="no_days">nessun giorno selezionato</string>
     <string name="check_failed">Controllo non riuscito</string>
-    <string name="setup_route">Imposta il percorso</string>
-    <string name="setup_route_hint">Scegli partenza e arrivo dalle impostazioni (icona in alto a destra).</string>
     <string name="no_check_yet">Nessun controllo ancora</string>
     <string name="no_check_hint">Premi Controlla ora: d\'ora in poi Rush ti avvisa solo se c\'è un problema.</string>
     <string name="level_normal">Regolare</string>
@@ -68,8 +65,23 @@
     <string name="notif_summary">%1$.1f km · %2$d min senza code</string>
     <string name="notif_event">%1$s: +%2$d min</string>
     <string name="notif_speed">%1$s (%2$d km/h)</string>
-    <string name="error_title">Traffico: errore</string>
+    <string name="error_title">%1$s: errore</string>
     <string name="error_no_from">Imposta la partenza</string>
     <string name="error_no_to">Imposta l\'arrivo</string>
     <string name="error_no_route">Nessun percorso trovato tra partenza e arrivo</string>
+    <string name="trips_title">Tragitti</string>
+    <string name="new_trip">Nuovo tragitto</string>
+    <string name="add_trip">Aggiungi tragitto</string>
+    <string name="no_trips">Nessun tragitto</string>
+    <string name="no_trips_hint">Aggiungi un tragitto che fai ogni settimana: Rush lo controlla per te e ti avvisa solo se c\'è un problema.</string>
+    <string name="trip_name">Nome (es. Palestra)</string>
+    <string name="trip_name_error">Inserisci un nome</string>
+    <string name="time_conflict">C\'è già «%1$s» alle %2$s in uno di questi giorni</string>
+    <string name="places_required">Imposta partenza e arrivo per salvare</string>
+    <string name="delete_trip">Elimina tragitto</string>
+    <string name="delete_confirm_title">Eliminare «%1$s»?</string>
+    <string name="delete_confirm_text">Vengono eliminati anche la pianificazione e l\'ultimo esito.</string>
+    <string name="cancel">Annulla</string>
+    <string name="delete">Elimina</string>
+    <string name="trip_schedule">%1$s · %2$s</string>
 </resources>

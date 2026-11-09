@@ -1,7 +1,13 @@
 package io.github.roby222.rush
 
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.mutablePreferencesOf
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
+import io.github.roby222.rush.ui.Draft
+import io.github.roby222.rush.ui.Missing
+import io.github.roby222.rush.ui.validate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -10,6 +16,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek.FRIDAY
 import java.time.DayOfWeek.MONDAY
+import java.time.DayOfWeek.THURSDAY
+import java.time.DayOfWeek.TUESDAY
 import java.time.DayOfWeek.WEDNESDAY
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -46,9 +54,9 @@ class LogicTest {
     private val home = Place("Casa", 45.0, 9.0)
     private val gym = Place("Palestra, Via Roma 1", 45.1, 9.1)
     private fun settings(from: Place? = home, to: Place? = gym, minDelay: Int = 10) =
-        Settings(from, to, mwf, 17, 20, minDelay, null, null, null, null)
+        Trip(1, "Palestra", from, to, mwf, 17, 20, minDelay)
     private fun delay(min: Int) = Route(Summary(6400, 840 + min * 60, min * 60, 840))
-    private fun outcome(s: Settings, manual: Boolean = false, route: suspend (Place, Place) -> Route) =
+    private fun outcome(s: Trip, manual: Boolean = false, route: suspend (Place, Place) -> Route) =
         runBlocking { checkOutcome(s, manual, route) }
 
     @Test fun outcomeThreshold() {
@@ -123,5 +131,75 @@ class LogicTest {
         assertEquals(1, trafficLevel(14, 3))   // 27% on a short trip
         assertEquals(2, trafficLevel(14, 5))   // 56%: a short trip turns intense sooner
         assertEquals(2, trafficLevel(70, 10))  // 10 min is intense on any trip
+    }
+
+    // --- multiple trips (ticket 07) ---
+
+    private fun trip(id: Int, days: Set<java.time.DayOfWeek> = mwf, hour: Int = 17, minute: Int = 20) =
+        Trip(id, "T$id", home, gym, days, hour, minute, 0)
+
+    @Test fun tripJsonRoundTrip() {
+        val p = mutablePreferencesOf()
+        val saved = p.putTrip(trip(0, days = setOf(TUESDAY, THURSDAY), hour = 8, minute = 0))
+        assertEquals(listOf(saved), p.trips())
+    }
+
+    @Test fun tripIdsGrowAndAreNeverReused() {
+        val p = mutablePreferencesOf(stringPreferencesKey("from_name") to "old", intPreferencesKey("hour") to 9)
+        val a = p.putTrip(trip(0))
+        val b = p.putTrip(trip(0, hour = 8))
+        assertEquals(1 to 2, a.id to b.id)
+        assertTrue("v0.2.0 keys are dropped", p.asMap().keys.none { it.name == "from_name" || it.name == "hour" })
+        p[Keys.result(b.id)] = "{}"
+        p.removeTrip(b.id)
+        assertNull(p[Keys.result(b.id)])
+        assertEquals(3, p.putTrip(trip(0, hour = 9)).id)
+        p.putTrip(a.copy(name = "Palestra"))
+        assertEquals(listOf("Palestra", "T0"), p.trips().map { it.name })
+    }
+
+    @Test fun oneAlarmPerTrip() {
+        val now = at(2026, 11, 9, 10, 0) // Monday
+        val plan = alarmPlan(listOf(trip(1), trip(2, days = setOf(TUESDAY), hour = 8, minute = 0), trip(3, days = emptySet())), now)
+        assertEquals(mapOf(1 to at(2026, 11, 9, 17, 20), 2 to at(2026, 11, 10, 8, 0)), plan)
+        assertTrue(scheduledWork(1) != scheduledWork(2) && manualWork(1) != scheduledWork(1))
+    }
+
+    @Test fun sameMinuteOnASharedDayConflicts() {
+        val gymTrip = trip(1).copy(name = "Palestra")
+        assertEquals(gymTrip, timeConflict(trip(0, days = setOf(FRIDAY)), listOf(gymTrip)))
+        assertNull(timeConflict(trip(0, days = setOf(TUESDAY)), listOf(gymTrip)))  // same time, other days
+        assertNull(timeConflict(trip(0, minute = 21), listOf(gymTrip)))
+        assertNull(timeConflict(gymTrip, listOf(gymTrip)))                          // editing itself
+    }
+
+    @Test fun featuredTripPrefersARecentProblem() {
+        val now = at(2026, 11, 9, 10, 0)
+        val morning = trip(1, days = setOf(MONDAY), hour = 11, minute = 0)          // next check: today 11:00
+        val evening = trip(2)                                                        // next check: today 17:20
+        fun result(hoursAgo: Long, delay: Int?) = TripResult(now.minusHours(hoursAgo).toInstant().toEpochMilli(), "", "",
+            delay?.let { Check("X", 20 + it, it, 20, 5.0) })
+        val trips = listOf(evening, morning)
+        assertEquals(morning, featuredTrip(trips, emptyMap(), now))                  // no results: next check
+        assertEquals(evening, featuredTrip(trips, mapOf(2 to result(1, 8)), now))    // slowdown 1 h ago
+        assertEquals(evening, featuredTrip(trips, mapOf(2 to result(1, null)), now)) // failed check 1 h ago
+        assertEquals(morning, featuredTrip(trips, mapOf(2 to result(4, 8)), now))    // too old
+        assertEquals(morning, featuredTrip(trips, mapOf(2 to result(1, 0)), now))    // all clear is not a problem
+        assertNull(featuredTrip(emptyList(), emptyMap(), now))
+    }
+
+    @Test fun editorValidation() {
+        val gymTrip = trip(1).copy(name = "Palestra")
+        val ok = Draft(0, "Ufficio", home, gym, setOf(TUESDAY), "8:05", "3")
+        val v = validate(ok, listOf(gymTrip))
+        assertTrue(v.canSave)
+        assertEquals(Trip(0, "Ufficio", home, gym, setOf(TUESDAY), 8, 5, 3), v.trip)
+        assertEquals(Missing.NAME, validate(ok.copy(name = " "), emptyList()).missing)
+        assertEquals(Missing.PLACES, validate(ok.copy(to = null), emptyList()).missing)
+        assertTrue(validate(ok.copy(time = "25:00"), emptyList()).badTime)
+        assertTrue(validate(ok.copy(minDelay = "-1"), emptyList()).badDelay)
+        val clash = validate(ok.copy(days = setOf(WEDNESDAY), time = "17:20"), listOf(gymTrip))
+        assertEquals(gymTrip, clash.conflict)
+        assertFalse(clash.canSave)
     }
 }
