@@ -52,4 +52,6 @@ Logic stays language-free: `Check` and `Outcome` hold numbers and codes (`Traffi
 
 Sideloaded on purpose: `USE_EXACT_ALARM` and the direct `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` dialog are both restricted on Google Play. The API key comes from `local.properties` into `BuildConfig` and never enters git. It is still readable from the APK and every install shares its daily quota: fine for personal sideloading, not for handing the app to other people (ticket 06).
 
+`AlarmReceiver` is exported on purpose (decided again on 2026-11-09), so `adb` can fire checks and reschedules in tests. The accepted cost: another app could start checks of existing trips, spending TomTom quota and posting notifications; it cannot read or change trips. If that ever matters, export it only in the debug build.
+
 iOS (ticket 05): an app cannot wake at an exact time to call the network (`BGAppRefreshTask` runs when the system decides), so a scheduled check there needs a backend sending pushes or a Shortcuts automation running an App Intent. Undecided; record the choice here.
