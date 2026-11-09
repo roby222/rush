@@ -93,8 +93,3 @@ check, and repeated taps run a single manual check.
 
 Times follow the phone's time zone. The app is meant for sideloading: it uses `USE_EXACT_ALARM` and asks for
 the battery optimization exemption directly, both of which Google Play restricts.
-
-## Claude Code
-
-`.claude/skills/` contains a few of the official [Android skills](https://github.com/android/skills)
-(Apache-2.0) used while developing the app.
