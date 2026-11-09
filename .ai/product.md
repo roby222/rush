@@ -43,7 +43,7 @@ A scheduled, single-trip watcher rather than a navigator: it speaks only when th
 - No specific addresses in code, docs or screenshots; the app stays generic.
 
 ## Evidence on Hand
-- Real screens: `docs/screenshots/home.png`, `docs/screenshots/settings.png` (demo route, Milan; v0.1.0 layout).
+- Real screens (demo routes New York and Milan, English): `docs/screenshots/home-traffic.png`, `home-clear.png`, `settings.png`.
 - No users, testimonials or metrics beyond the author.
 
 ## Product Principles
