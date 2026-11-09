@@ -27,4 +27,5 @@ The Home is the notification at full size (direction contract in `.impeccable/su
 - Headings carry their own weight; labels go below a value or as a field label, never as a small caps line above a heading.
 - System warnings are inline cards with one fixing action, re-checked on resume so they vanish once fixed; dialogs only for the system's own permission prompts.
 - Icons are vector drawables in `res/drawable` (`ic_settings`, `ic_back`); dots and lines are drawn in Compose.
+- Launcher icon: white ground, an Ink road entering from the bottom edge with its centre line colored by traffic (green, yellow, red) up to an Ink arrival dot; monochrome is the road and the dot with a hole.
 - Screen state survives rotation and theme changes (`rememberSaveable`).

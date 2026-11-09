@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Strada in prospettiva verso un orologio: "parti all'ora giusta". Tutto entro la safe zone (r=33). -->
+<!-- Strada Ink con la mezzeria colorata per traffico (verde, giallo, rosso) fino al pallino di arrivo.
+     La strada entra dal bordo in basso; il pallino resta nella safe zone (r=33). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <!-- asfalto -->
-    <path android:fillColor="#263238" android:pathData="M49,47 L59,47 L73,82 Q74,84 72,84 L36,84 Q34,84 35,82 Z" />
-    <!-- tratteggio centrale -->
-    <path android:fillColor="#FFFFFF" android:pathData="M53.4,51 L54.6,51 L55,57 L53,57 Z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M52.8,62 L55.2,62 L55.8,70 L52.2,70 Z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M52,75 L56,75 L56.6,84 L51.4,84 Z" />
-    <!-- orologio all'orizzonte -->
-    <path android:fillColor="#FFFFFF" android:pathData="M54,21 a12,12 0 1,0 0.01,0 Z" />
-    <path android:strokeColor="#E64A19" android:strokeWidth="2.6" android:strokeLineCap="round"
-        android:pathData="M54,33 L54,26 M54,33 L59,35.5" />
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="0.8" android:scaleY="0.8">
+        <!-- ombra portata: nero al 22% sul fondo bianco, opaca per non raddoppiare dove strada e pallino si sovrappongono -->
+        <group android:translateY="2.2">
+            <path android:strokeColor="#C7C7C7" android:strokeWidth="17" android:strokeLineJoin="round"
+                android:pathData="M34,110 V62 Q34,52 44,52 H64 Q74,52 74,42 V34" />
+            <path android:fillColor="#C7C7C7" android:pathData="M63,30 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0 Z" />
+        </group>
+        <path android:strokeColor="#2A2E35" android:strokeWidth="17" android:strokeLineJoin="round"
+            android:pathData="M34,110 V62 Q34,52 44,52 H64 Q74,52 74,42 V34" />
+        <path android:strokeColor="#1E8E3E" android:strokeWidth="5" android:pathData="M34,110 V60" />
+        <path android:strokeColor="#F9AB00" android:strokeWidth="5" android:pathData="M34,60 Q34,52 44,52 H64" />
+        <path android:strokeColor="#D93025" android:strokeWidth="5" android:pathData="M64,52 Q74,52 74,42 V34" />
+        <path android:fillColor="#2A2E35" android:pathData="M63,30 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0 Z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M69.8,30 a4.2,4.2 0 1,0 8.4,0 a4.2,4.2 0 1,0 -8.4,0 Z" />
+    </group>
 </vector>
