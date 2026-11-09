@@ -11,6 +11,18 @@ MVVM, as Google recommends for Android: screens → ViewModel → repository →
 - `TripRepository`: the only door to trips and checks. Saving or deleting a trip also reschedules the alarms, so no screen can leave them stale.
 - Pure logic, covered by `LogicTest`: `TomTom.kt` (route → `Check`, levels), `Scheduler.kt` (`nextTrigger`, `alarmPlan`, `timeConflict`, `featuredTrip`), `Prefs.kt` (`putTrip`/`removeTrip` on `MutablePreferences`), `checkOutcome`.
 - `MainActivity` only hosts the Compose tree and forwards the notification's trip id and `onResume`.
+- `widget/`: the Glance widget (`TripWidget`, its receiver, `CheckNowAction`) and `TripWidgetConfigActivity`. It reads the same DataStore as the Home and never calls TomTom.
+
+## Widget refresh
+
+The widget only redraws saved data; who triggers a redraw:
+- `CheckWorker`, after saving any result (scheduled or manual);
+- `TripRepository`, after saving or deleting a trip (a deleted trip's widget says so);
+- `AlarmReceiver`, after every reschedule (app update, boot, clock change): an updated app leaves widgets on the loading layout otherwise;
+- the system, every 30 minutes (`updatePeriodMillis`), so a result can turn stale (`isStale`: older than 2 h or from an earlier day);
+- `CheckNowAction`, which stores the tap time in the widget's own state: the widget says "checking" until a newer result lands (`isChecking`, 3-minute cap). WorkManager's state cannot tell, because the worker redraws while its job still counts as running.
+
+Glance gotcha: while a session is open, an update recomposes the content without calling `provideGlance` again, so the widget reads DataStore (`collectAsState`) and its own state (`currentState`) inside `provideContent`, never before it.
 
 ## Storage
 

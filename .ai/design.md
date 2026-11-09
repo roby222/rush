@@ -27,6 +27,16 @@ The Home is the notification at full size (direction contract in `.impeccable/su
 - The editor: name, departure, destination (search → result → Conferma), days, time, minimum delay, primary "Salva", then "Elimina tragitto" as an error-colored text button behind a Material confirmation dialog. A new trip takes its name from the destination when the name is still empty.
 - Errors sit under their field: a time clash names the other trip ("C'è già «Palestra» alle 17:20 in uno di questi giorni") and keeps Salva disabled; a missing name or place is said in one line under Salva.
 
+## Widget (`widget/TripWidget.kt`, Glance)
+
+One trip per widget, chosen when the widget is added (skipped with a single trip) and changeable from the launcher's pencil. Same palette as the app through `ui/Palette` (Glance cannot read the Compose theme), day/night colors, 24dp corners.
+
+- 4x2: trip name; "level · minutes (+delay)" in the traffic color; the first notable slowdown with its street; "Checked at … · Next …"; the amber "Check now" pill, which reads "Checking…" until a newer result lands.
+- 2x1: name and minutes on one line, the level in words, only the check time.
+- Ground: the verdict card's tint for a fresh result, the error tint for a failed check, neutral otherwise.
+- A result older than 2 hours or from an earlier day is never shown as current: neutral ground, everything muted except the time line, which turns bold ("Last check Mon 23:32").
+- No trip yet / trip removed: one sentence saying what to do. Tapping anywhere opens the app on the widget's trip.
+
 ## Rules
 
 - Traffic state is always written in words next to its color (the headline at level 0, the pill beside it above level 0).

@@ -14,6 +14,7 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import io.github.roby222.rush.widget.TripWidget
 import kotlinx.coroutines.runInterruptible
 
 private const val CHANNEL = "traffic"
@@ -39,6 +40,7 @@ class CheckWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
         ctx.saveResult(trip.id, TripResult(System.currentTimeMillis(), title, text, o.check))
         // One notification per trip, so two trips never overwrite each other's.
         if (o.notify) notify(ctx, 1000 + trip.id, notification(ctx, title, text, trip.id))
+        TripWidget.refresh(ctx) // widgets show the saved result, so redraw them now
         return Result.success()
     }
 

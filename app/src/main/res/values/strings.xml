@@ -84,4 +84,13 @@
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
     <string name="trip_schedule">%1$s · %2$s</string>
+    <string name="widget_name">Rush trip</string>
+    <string name="widget_description">The last check of one trip, without opening the app</string>
+    <string name="widget_trip_removed">Trip removed. Hold the widget to choose another.</string>
+    <string name="widget_no_trip">Add a trip in Rush</string>
+    <string name="widget_next">Next %1$s</string>
+    <string name="widget_checked_at">Checked at %1$s</string>
+    <string name="widget_checked_day">Last check %1$s</string>
+    <string name="widget_minutes">%1$d min (+%2$d)</string>
+    <string name="widget_pick_trip">Choose the trip to show</string>
 </resources>

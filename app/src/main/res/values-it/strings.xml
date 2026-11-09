@@ -84,4 +84,13 @@
     <string name="cancel">Annulla</string>
     <string name="delete">Elimina</string>
     <string name="trip_schedule">%1$s · %2$s</string>
+    <string name="widget_name">Tragitto Rush</string>
+    <string name="widget_description">L\'ultimo controllo di un tragitto, senza aprire l\'app</string>
+    <string name="widget_trip_removed">Tragitto rimosso. Tieni premuto il widget per sceglierne un altro.</string>
+    <string name="widget_no_trip">Aggiungi un tragitto in Rush</string>
+    <string name="widget_next">Prossimo %1$s</string>
+    <string name="widget_checked_at">Controllato alle %1$s</string>
+    <string name="widget_checked_day">Ultimo controllo %1$s</string>
+    <string name="widget_minutes">%1$d min (+%2$d)</string>
+    <string name="widget_pick_trip">Scegli il tragitto da mostrare</string>
 </resources>

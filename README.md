@@ -25,6 +25,8 @@ The UI is in English and Italian, following the device language.
   Routing API. The time is colored by traffic level: green, orange, red.
 - **Threshold**: notify only when traffic adds at least N minutes (0 = always). "Controlla ora" (check now)
   and errors always notify.
+- **Widget**: a home-screen widget (2x1 to 4x2) with one trip's last result, colored like the Home, and a
+  "Check now" button. It never calls TomTom itself, and an old result is shown faded with its time.
 - **Local search**: once one place of a trip is set, searching for the other one prefers results within 50 km of it,
   so a bare street name finds the one in your city.
 - **System warnings**: if notifications, background running or exact alarms are not allowed, Home shows a
@@ -100,6 +102,7 @@ MVVM: Compose screens → ViewModels → `TripRepository` → pure logic (covere
 | `CheckWorker.kt` | expedited worker: checks one trip, saves its result, notifies |
 | `TomTom.kt` | Search/Routing calls, JSON models, slowdowns by street, traffic level |
 | `MainActivity.kt` | hosts the UI and opens the trip of a tapped notification |
+| `widget/TripWidget.kt`, `widget/TripWidgetConfigActivity.kt` | home-screen widget (Glance) and its trip picker |
 
 Times follow the phone's time zone. The app is meant for sideloading: it uses `USE_EXACT_ALARM` and asks for
 the battery optimization exemption directly, both of which Google Play restricts.

@@ -14,6 +14,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import io.github.roby222.rush.widget.TripWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -103,7 +104,7 @@ object Scheduler {
     }
 }
 
-/** Fires a trip's check on its alarm; reschedules every trip on alarm, boot, clock/timezone change and app update. */
+/** Fires a trip's check on its alarm; reschedules every trip and redraws the widgets on alarm, boot, clock/timezone change and app update. */
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val tripId = intent.getIntExtra(EXTRA_TRIP, 0)
@@ -111,7 +112,13 @@ class AlarmReceiver : BroadcastReceiver() {
         if (intent.action == ACTION_CHECK && tripId > 0) Scheduler.checkNow(ctx, tripId, manual = false)
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            try { Scheduler.scheduleAll(ctx) } finally { pending.finish() }
+            try {
+                Scheduler.scheduleAll(ctx)
+                // After an app update, reboot or clock change the widgets need a redraw too (and may turn stale).
+                TripWidget.refresh(ctx)
+            } finally {
+                pending.finish()
+            }
         }
     }
 }

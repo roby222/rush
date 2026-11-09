@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- No network from the widget: the 30-minute update only redraws the saved result (so it can turn stale). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:configure="io.github.roby222.rush.widget.TripWidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
+    android:minWidth="110dp"
+    android:minHeight="48dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="48dp"
+    android:maxResizeWidth="400dp"
+    android:maxResizeHeight="200dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

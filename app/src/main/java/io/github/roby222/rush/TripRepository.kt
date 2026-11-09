@@ -2,6 +2,7 @@ package io.github.roby222.rush
 
 import android.content.Context
 import androidx.work.WorkManager
+import io.github.roby222.rush.widget.TripWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -9,16 +10,20 @@ import kotlinx.coroutines.withContext
 
 /**
  * The one door the UI uses for trips and their checks. Saving or deleting a trip also updates the
- * alarms, so a screen can never leave the schedule out of date.
+ * alarms and the home-screen widgets, so a screen can never leave them out of date.
  */
 class TripRepository(private val ctx: Context) {
     val state: Flow<AppState> = ctx.stateFlow()
 
-    suspend fun save(t: Trip): Trip = ctx.saveTrip(t).also { Scheduler.scheduleAll(ctx) }
+    suspend fun save(t: Trip): Trip = ctx.saveTrip(t).also {
+        Scheduler.scheduleAll(ctx)
+        TripWidget.refresh(ctx)
+    }
 
     suspend fun delete(id: Int) {
         ctx.deleteTrip(id)
         Scheduler.scheduleAll(ctx)
+        TripWidget.refresh(ctx) // its widget now says the trip was removed
     }
 
     suspend fun reschedule() = Scheduler.scheduleAll(ctx)
