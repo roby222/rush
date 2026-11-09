@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Senza riferimento l'URL di ricerca non contiene parametri di posizione (test)
-- [ ] Con riferimento l'URL contiene lat, lon e raggio del punto salvato (test)
-- [ ] Query con spazi e accenti codificata correttamente nel path (test)
-- [ ] Nessuna coordinata o indirizzo cablato nel codice
-- [ ] Su dispositivo: con partenza salvata, cercare solo il nome di una via restituisce quella della stessa città
+- [x] Senza riferimento l'URL di ricerca non contiene parametri di posizione (test)
+- [x] Con riferimento l'URL contiene lat, lon e raggio del punto salvato (test)
+- [x] Query con spazi e accenti codificata correttamente nel path (test)
+- [x] Nessuna coordinata o indirizzo cablato nel codice
+- [x] Su dispositivo: con partenza salvata, cercare solo il nome di una via restituisce quella della stessa città

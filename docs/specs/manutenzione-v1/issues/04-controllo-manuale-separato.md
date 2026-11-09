@@ -4,8 +4,8 @@
 
 **Blocked by:** 01 (Esito del controllo testabile e cancellazione corretta)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Trigger del controllo pianificato via adb seguito subito da "Controlla ora" → arrivano entrambi i risultati
-- [ ] Più tocchi rapidi su "Controlla ora" → un solo risultato manuale
-- [ ] Il controllo pianificato continua a riprogrammare lo scatto successivo
+- [x] Trigger del controllo pianificato via adb seguito subito da "Controlla ora" → arrivano entrambi i risultati
+- [x] Più tocchi rapidi su "Controlla ora" → un solo risultato manuale
+- [x] Il controllo pianificato continua a riprogrammare lo scatto successivo

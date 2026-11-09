@@ -30,6 +30,8 @@ import java.util.concurrent.TimeUnit
 }
 @Serializable data class SearchResponse(val results: List<SearchResult> = emptyList())
 
+const val NEAR_RADIUS_M = 50_000
+
 object TomTom {
     private val http = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS).build()
     private val json = Json { ignoreUnknownKeys = true }
@@ -46,11 +48,21 @@ object TomTom {
         }
     }
 
-    fun search(query: String): SearchResult? {
-        val url = base().addPathSegments("search/2/search").addPathSegment("$query.json")
-            .addQueryParameter("limit", "1").build()
-        return json.decodeFromString<SearchResponse>(get(url)).results.firstOrNull()
-    }
+    /** Search URL; with [near] results are limited to [NEAR_RADIUS_M] around that point. */
+    fun searchUrl(query: String, near: Place?): HttpUrl = base()
+        .addPathSegments("search/2/search").addPathSegment("$query.json")
+        .addQueryParameter("limit", "1")
+        .apply {
+            if (near != null) {
+                addQueryParameter("lat", near.lat.toString())
+                addQueryParameter("lon", near.lon.toString())
+                addQueryParameter("radius", NEAR_RADIUS_M.toString())
+            }
+        }
+        .build()
+
+    fun search(query: String, near: Place?): SearchResult? =
+        json.decodeFromString<SearchResponse>(get(searchUrl(query, near))).results.firstOrNull()
 
     fun route(fromLat: Double, fromLon: Double, toLat: Double, toLon: Double): Route {
         val url = base().addPathSegments("routing/1/calculateRoute")

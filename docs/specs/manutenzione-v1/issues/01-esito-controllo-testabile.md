@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Soglia di ritardo non raggiunta in un controllo pianificato → nessuna notifica (test)
-- [ ] Soglia raggiunta, o soglia 0 → notifica col titolo "<arrivo>: N min (+M traffico)" (test)
-- [ ] Controllo manuale → notifica sempre, anche sotto soglia (test)
-- [ ] Partenza o arrivo mancanti → errore notificato con il motivo (test)
-- [ ] Errore del client TomTom → errore notificato con il messaggio (test)
-- [ ] Cancellazione durante il controllo → rilanciata, nessun salvataggio né notifica (test)
-- [ ] "Controlla ora" su dispositivo funziona come prima
+- [x] Soglia di ritardo non raggiunta in un controllo pianificato → nessuna notifica (test)
+- [x] Soglia raggiunta, o soglia 0 → notifica col titolo "<arrivo>: N min (+M traffico)" (test)
+- [x] Controllo manuale → notifica sempre, anche sotto soglia (test)
+- [x] Partenza o arrivo mancanti → errore notificato con il motivo (test)
+- [x] Errore del client TomTom → errore notificato con il messaggio (test)
+- [x] Cancellazione durante il controllo → rilanciata, nessun salvataggio né notifica (test)
+- [x] "Controlla ora" su dispositivo funziona come prima

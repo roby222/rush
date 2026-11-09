@@ -20,6 +20,7 @@ import java.time.DayOfWeek
 import java.time.ZonedDateTime
 
 const val ACTION_CHECK = "io.github.roby222.rush.CHECK"
+const val MANUAL_WORK = "check-manual"
 
 /** First occurrence strictly after [now] on one of [days] at hour:minute, or null if no days. */
 fun nextTrigger(now: ZonedDateTime, days: Set<DayOfWeek>, hour: Int, minute: Int): ZonedDateTime? =
@@ -53,7 +54,11 @@ object Scheduler {
             .setConstraints(Constraints(requiredNetworkType = NetworkType.CONNECTED))
             .setInputData(workDataOf("manual" to manual))
             .build()
-        WorkManager.getInstance(ctx).enqueueUniqueWork("check", ExistingWorkPolicy.REPLACE, req)
+        // Separate queues: a manual check never cancels the scheduled one. Repeated taps keep
+        // the manual check already queued or running instead of starting another.
+        val wm = WorkManager.getInstance(ctx)
+        if (manual) wm.enqueueUniqueWork(MANUAL_WORK, ExistingWorkPolicy.KEEP, req)
+        else wm.enqueueUniqueWork("check", ExistingWorkPolicy.REPLACE, req)
     }
 }
 

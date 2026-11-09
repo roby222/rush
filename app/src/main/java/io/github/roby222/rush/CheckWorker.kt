@@ -12,6 +12,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runInterruptible
 
 private const val CHANNEL = "traffic"
 
@@ -19,15 +22,9 @@ class CheckWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
     override suspend fun doWork(): Result {
         val ctx = applicationContext
         val manual = inputData.getBoolean("manual", false)
-        val s = ctx.settings()
-        val (title, text, notify) = try {
-            val from = s.from ?: error("Imposta la partenza")
-            val to = s.to ?: error("Imposta l'arrivo")
-            val r = TomTom.route(from.lat, from.lon, to.lat, to.lon)
-            val (t, x) = describe(to.name.substringBefore(","), r)
-            Triple(t, x, manual || r.summary.trafficDelayInSeconds >= s.minDelayMin * 60)
-        } catch (e: Exception) {
-            Triple("Traffico: errore", e.message ?: e.javaClass.simpleName, true)
+        val (title, text, notify) = checkOutcome(ctx.settings(), manual) { from, to ->
+            // Interruptible so a cancelled work aborts the HTTP call instead of finishing it.
+            runInterruptible(Dispatchers.IO) { TomTom.route(from.lat, from.lon, to.lat, to.lon) }
         }
         ctx.store.edit {
             it[Keys.lastTitle] = title
@@ -41,6 +38,26 @@ class CheckWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
     // Expedited work runs as a foreground service below Android 12 and needs this.
     override suspend fun getForegroundInfo() =
         ForegroundInfo(2, notification(applicationContext, "Controllo traffico…", ""))
+}
+
+/**
+ * Title, text and whether to notify for one check. Cancellation is rethrown so a check
+ * stopped by the system neither saves a result nor notifies a fake error.
+ */
+suspend fun checkOutcome(
+    s: Settings,
+    manual: Boolean,
+    route: suspend (from: Place, to: Place) -> Route,
+): Triple<String, String, Boolean> = try {
+    val from = s.from ?: error("Imposta la partenza")
+    val to = s.to ?: error("Imposta l'arrivo")
+    val r = route(from, to)
+    val (t, x) = describe(to.name.substringBefore(","), r)
+    Triple(t, x, manual || r.summary.trafficDelayInSeconds >= s.minDelayMin * 60)
+} catch (e: CancellationException) {
+    throw e
+} catch (e: Exception) {
+    Triple("Traffico: errore", e.message ?: e.javaClass.simpleName, true)
 }
 
 fun notification(ctx: Context, title: String, text: String): android.app.Notification {

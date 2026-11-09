@@ -4,9 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Notifiche disattivate → avviso e pulsante visibili
-- [ ] Il pulsante apre le impostazioni notifiche di questa app
-- [ ] Riattivate le notifiche e tornati nell'app → avviso nascosto senza riavviare l'app
-- [ ] Notifiche attive → nessun avviso
+- [x] Notifiche disattivate → avviso e pulsante visibili
+- [x] Il pulsante apre le impostazioni notifiche di questa app
+- [x] Riattivate le notifiche e tornati nell'app → avviso nascosto senza riavviare l'app
+- [x] Notifiche attive → nessun avviso

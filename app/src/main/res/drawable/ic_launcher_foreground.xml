@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strada in prospettiva verso un orologio: "parti all'ora giusta". Tutto entro la safe zone (r=33). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- asfalto -->
+    <path android:fillColor="#263238" android:pathData="M49,47 L59,47 L73,82 Q74,84 72,84 L36,84 Q34,84 35,82 Z" />
+    <!-- tratteggio centrale -->
+    <path android:fillColor="#FFFFFF" android:pathData="M53.4,51 L54.6,51 L55,57 L53,57 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M52.8,62 L55.2,62 L55.8,70 L52.2,70 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M52,75 L56,75 L56.6,84 L51.4,84 Z" />
+    <!-- orologio all'orizzonte -->
+    <path android:fillColor="#FFFFFF" android:pathData="M54,21 a12,12 0 1,0 0.01,0 Z" />
+    <path android:strokeColor="#E64A19" android:strokeWidth="2.6" android:strokeLineCap="round"
+        android:pathData="M54,33 L54,26 M54,33 L59,35.5" />
+</vector>

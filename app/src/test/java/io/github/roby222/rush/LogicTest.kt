@@ -1,7 +1,12 @@
 package io.github.roby222.rush
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek.FRIDAY
 import java.time.DayOfWeek.MONDAY
@@ -36,5 +41,49 @@ class LogicTest {
         val (title, text) = describe("Palestra", r)
         assertEquals("Palestra: 14 min (+5 traffico)", title)
         assertEquals("6.4 km · senza traffico 9 min\nCoda: +4 min (11 km/h)\nLavori: +1 min", text.replace(',', '.'))
+    }
+
+    private val home = Place("Casa", 45.0, 9.0)
+    private val gym = Place("Palestra, Via Roma 1", 45.1, 9.1)
+    private fun settings(from: Place? = home, to: Place? = gym, minDelay: Int = 10) =
+        Settings(from, to, mwf, 17, 20, minDelay, null, null, null)
+    private fun delay(min: Int) = Route(Summary(6400, 840 + min * 60, min * 60, 840))
+    private fun outcome(s: Settings, manual: Boolean = false, route: suspend (Place, Place) -> Route) =
+        runBlocking { checkOutcome(s, manual, route) }
+
+    @Test fun outcomeThreshold() {
+        assertFalse(outcome(settings()) { _, _ -> delay(5) }.third)
+        val (title, _, notify) = outcome(settings()) { _, _ -> delay(10) }
+        assertEquals("Palestra: 24 min (+10 traffico)", title)
+        assertTrue(notify)
+        assertTrue(outcome(settings(minDelay = 0)) { _, _ -> delay(0) }.third)
+        assertTrue(outcome(settings(), manual = true) { _, _ -> delay(0) }.third)
+    }
+
+    @Test fun outcomeErrors() {
+        assertEquals(Triple("Traffico: errore", "Imposta la partenza", true),
+            outcome(settings(from = null)) { _, _ -> error("not called") })
+        assertEquals(Triple("Traffico: errore", "Imposta l'arrivo", true),
+            outcome(settings(to = null)) { _, _ -> error("not called") })
+        assertEquals(Triple("Traffico: errore", "HTTP 403: Forbidden", true),
+            outcome(settings()) { _, _ -> error("HTTP 403: Forbidden") })
+    }
+
+    @Test fun outcomeCancellationRethrown() {
+        assertThrows(CancellationException::class.java) {
+            outcome(settings()) { _, _ -> throw CancellationException("stopped") }
+        }
+    }
+
+    @Test fun searchUrl() {
+        val global = TomTom.searchUrl("Piazza Università 1", null)
+        assertTrue(global.encodedPath.endsWith("/search/2/search/Piazza%20Universit%C3%A0%201.json"))
+        assertNull(global.queryParameter("lat"))
+        assertNull(global.queryParameter("lon"))
+        assertNull(global.queryParameter("radius"))
+        val near = TomTom.searchUrl("Via Roma", home)
+        assertEquals("45.0", near.queryParameter("lat"))
+        assertEquals("9.0", near.queryParameter("lon"))
+        assertEquals(NEAR_RADIUS_M.toString(), near.queryParameter("radius"))
     }
 }
