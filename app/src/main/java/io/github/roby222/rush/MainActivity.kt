@@ -426,7 +426,8 @@ fun SettingsScreen(s: Settings, onDone: () -> Unit) {
             Text(stringResource(if (parsedDelay == null) R.string.min_delay_error else R.string.min_delay_help))
         },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-    Button(enabled = parsedTime != null && parsedDelay != null, modifier = Modifier.fillMaxWidth(), onClick = {
+    Button(enabled = parsedTime != null && parsedDelay != null, modifier = Modifier.fillMaxWidth().height(52.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Ink), onClick = {
         scope.launch {
             ctx.store.edit {
                 it[Keys.days] = days.map { d -> d.name }.toSet()
