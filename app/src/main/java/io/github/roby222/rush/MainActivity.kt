@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.AlarmManager
 import android.content.Intent
 import android.os.Build
+import android.net.Uri
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings as AndroidSettings
@@ -12,7 +13,14 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -25,11 +33,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -76,9 +79,12 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Date
 
+/** System settings the checks depend on; each false one shows a warning on Home. */
+data class SystemStatus(val notifications: Boolean, val battery: Boolean, val exactAlarms: Boolean)
+
 class MainActivity : ComponentActivity() {
-    // Refreshed on resume so the warning hides after the user re-enables notifications.
-    private val notificationsOn = mutableStateOf(true)
+    // Refreshed on resume so a warning hides as soon as the user fixes it in system settings.
+    private val status = mutableStateOf(SystemStatus(notifications = true, battery = true, exactAlarms = true))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,29 +93,23 @@ class MainActivity : ComponentActivity() {
             registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
                 .launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        setContent {
-            val dark = isSystemInDarkTheme()
-            // Material You (colori dallo sfondo) da Android 12; prima, palette standard
-            val colors = when {
-                Build.VERSION.SDK_INT >= 31 && dark -> dynamicDarkColorScheme(this)
-                Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(this)
-                dark -> darkColorScheme()
-                else -> lightColorScheme()
-            }
-            MaterialTheme(colorScheme = colors) { App(notificationsOn.value) }
-        }
+        setContent { RushTheme { App(status.value) } }
     }
 
     override fun onResume() {
         super.onResume()
-        notificationsOn.value = NotificationManagerCompat.from(this).areNotificationsEnabled()
+        status.value = SystemStatus(
+            notifications = NotificationManagerCompat.from(this).areNotificationsEnabled(),
+            battery = getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName),
+            exactAlarms = Build.VERSION.SDK_INT < 31 || getSystemService(AlarmManager::class.java).canScheduleExactAlarms(),
+        )
         lifecycleScope.launch { Scheduler.schedule(this@MainActivity) }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun App(notificationsOn: Boolean) {
+fun App(status: SystemStatus) {
     var editing by rememberSaveable { mutableStateOf(false) }
     val ctx = LocalContext.current
     val s = remember { ctx.settingsFlow() }.collectAsState(initial = null).value ?: return
@@ -137,69 +137,98 @@ fun App(notificationsOn: Boolean) {
                 BackHandler { editing = false }
                 SettingsScreen(s) { editing = false }
             } else {
-                HomeScreen(s, notificationsOn)
+                HomeScreen(s, status)
             }
         }
     }
 }
 
 @Composable
-fun HomeScreen(s: Settings, notificationsOn: Boolean) {
+fun HomeScreen(s: Settings, status: SystemStatus) {
     val ctx = LocalContext.current
+    val c = MaterialTheme.colorScheme
     val checking = remember { WorkManager.getInstance(ctx).getWorkInfosForUniqueWorkFlow(MANUAL_WORK) }
         .collectAsState(emptyList()).value.any { !it.state.isFinished }
+    val parsed = s.lastTitle?.let(::parseTitle)
 
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            LabeledValue("Partenza", s.from?.name?.substringBefore(",") ?: "Non impostata")
-            LabeledValue("Arrivo", s.to?.name?.substringBefore(",") ?: "Non impostato")
+    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            when {
+                s.lastAt == null -> {
+                    Text("Nessun controllo ancora", style = MaterialTheme.typography.titleLarge)
+                    Text("Premi \"Controlla ora\" per vedere il tempo di percorrenza.",
+                        style = MaterialTheme.typography.bodyMedium, color = c.onSurfaceVariant)
+                }
+                parsed == null -> {
+                    Text(s.lastTitle ?: "", style = MaterialTheme.typography.titleLarge, color = c.error)
+                    Text(s.lastText ?: "", style = MaterialTheme.typography.bodyMedium)
+                }
+                else -> {
+                    val (dest, total, delay) = parsed
+                    val level = trafficLevel(total, delay)
+                    Text("Verso $dest", style = MaterialTheme.typography.titleMedium, color = c.onSurfaceVariant)
+                    Text("$total min", color = trafficColor(level),
+                        style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Medium))
+                    Text(listOf("Traffico scorrevole", "Traffico rallentato", "Traffico intenso")[level] +
+                        (if (delay > 0) " · +$delay min" else ""),
+                        style = MaterialTheme.typography.titleSmall, color = trafficColor(level))
+                    Text(s.lastText ?: "", style = MaterialTheme.typography.bodyMedium, color = c.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp))
+                }
+            }
+            s.lastAt?.let {
+                Text("Aggiornato " + DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it)),
+                    style = MaterialTheme.typography.labelMedium, color = c.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp))
+            }
+            Button(
+                onClick = { Scheduler.checkNow(ctx, manual = true) },
+                enabled = !checking,
+                colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Ink),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(52.dp),
+            ) { Text(if (checking) "Controllo in corso…" else "Controlla ora", style = MaterialTheme.typography.titleSmall) }
         }
     }
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (s.lastAt == null) {
-                Text("Nessun controllo ancora", style = MaterialTheme.typography.titleMedium)
-                Text("Premi \"Controlla ora\" per vedere il tempo di percorrenza.")
-            } else {
-                Text("Ultimo controllo · " +
-                    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(s.lastAt)),
-                    style = MaterialTheme.typography.labelMedium)
-                Text(s.lastTitle ?: "", style = MaterialTheme.typography.headlineSmall)
-                Text(s.lastText ?: "", style = MaterialTheme.typography.bodyMedium)
-            }
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            RouteStop(Modifier.border(2.dp, c.onSurfaceVariant, CircleShape),
+                "Partenza", s.from?.name?.substringBefore(",") ?: "Non impostata")
+            RouteStop(Modifier.background(Amber, CircleShape),
+                "Arrivo", s.to?.name?.substringBefore(",") ?: "Non impostato")
         }
     }
     val next = nextTrigger(ZonedDateTime.now(), s.days, s.hour, s.minute)
-    LabeledValue("Prossimo controllo", next?.format(DateTimeFormatter.ofPattern("EEEE d MMMM, HH:mm")) ?: "Nessun giorno selezionato")
-    Button(
-        onClick = { Scheduler.checkNow(ctx, manual = true) },
-        enabled = !checking,
-        modifier = Modifier.fillMaxWidth(),
-    ) { Text(if (checking) "Controllo in corso…" else "Controlla ora") }
+    Text("Prossimo controllo automatico: " +
+        (next?.format(DateTimeFormatter.ofPattern("EEEE d MMMM, HH:mm")) ?: "nessun giorno selezionato"),
+        style = MaterialTheme.typography.bodyMedium, color = c.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 4.dp))
 
-    if (!notificationsOn) {
+    val pkg = Uri.parse("package:${ctx.packageName}")
+    if (!status.notifications) {
         Warning("Notifiche disattivate: non riceverai i risultati dei controlli.", "Attiva notifiche", critical = true,
             Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(AndroidSettings.EXTRA_APP_PACKAGE, ctx.packageName))
     }
-    val pm = ctx.getSystemService(PowerManager::class.java)
-    if (!pm.isIgnoringBatteryOptimizations(ctx.packageName)) {
-        Warning("Per non perdere i controlli, escludi l'app dall'ottimizzazione batteria.", "Ottimizzazione batteria",
-            critical = false, Intent(AndroidSettings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+    if (!status.battery) {
+        // Opens the system "allow in background" dialog directly (allowed: app is not on Play Store).
+        Warning("Per non perdere i controlli, consenti a Rush di funzionare in background.", "Consenti",
+            critical = false, Intent(AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkg))
     }
-    if (Build.VERSION.SDK_INT >= 31 && !ctx.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()) {
+    if (!status.exactAlarms) {
         Warning("Allarmi esatti non consentiti: l'orario sarà approssimativo.", "Consenti allarmi esatti",
-            critical = false, Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+            critical = false, Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkg))
     }
 }
 
+/** One end of the route, marked with a dot like a map: [dot] styles a 12dp circle. */
 @Composable
-private fun LabeledValue(label: String, value: String) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodyLarge)
+private fun RouteStop(dot: Modifier, label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Box(Modifier.size(12.dp).then(dot))
+        Column {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.bodyLarge)
+        }
     }
 }
 

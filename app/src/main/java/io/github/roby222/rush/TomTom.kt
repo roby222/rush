@@ -100,3 +100,19 @@ fun describe(destination: String, r: Route): Pair<String, String> {
     }
     return title to lines.joinToString("\n")
 }
+
+// shortcut: reads back the title built by describe(); store minutes as separate keys if the title format changes.
+/** Destination, travel minutes and traffic minutes from a [describe] title; null for error titles. */
+fun parseTitle(title: String): Triple<String, Int, Int>? =
+    Regex("""(.*): (\d+) min \(\+(\d+) traffico\)""").matchEntire(title)
+        ?.destructured?.let { (dest, total, delay) -> Triple(dest, total.toInt(), delay.toInt()) }
+
+/** 0 = scorrevole, 1 = rallentato, 2 = intenso, from the delay relative to the free-flow time. */
+fun trafficLevel(totalMin: Int, delayMin: Int): Int {
+    val ratio = delayMin.toDouble() / maxOf(1, totalMin - delayMin)
+    return when {
+        delayMin <= 2 || ratio < 0.15 -> 0
+        ratio < 0.4 -> 1
+        else -> 2
+    }
+}

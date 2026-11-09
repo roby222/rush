@@ -86,4 +86,13 @@ class LogicTest {
         assertEquals("9.0", near.queryParameter("lon"))
         assertEquals(NEAR_RADIUS_M.toString(), near.queryParameter("radius"))
     }
+
+    @Test fun titleAndTrafficLevel() {
+        assertEquals(Triple("Palestra", 24, 10), parseTitle(describe("Palestra", delay(10)).first))
+        assertNull(parseTitle("Traffico: errore"))
+        assertEquals(0, trafficLevel(14, 2))  // small absolute delay
+        assertEquals(0, trafficLevel(40, 4))  // 11% of free flow
+        assertEquals(1, trafficLevel(14, 3))  // 27%
+        assertEquals(2, trafficLevel(14, 5))  // 56%
+    }
 }
