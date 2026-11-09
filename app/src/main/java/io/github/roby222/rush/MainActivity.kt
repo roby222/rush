@@ -88,6 +88,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.work.WorkManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
@@ -447,10 +448,12 @@ fun PlaceField(label: String, prefix: String, current: Place?, near: Place?) {
     var query by rememberSaveable { mutableStateOf("") }
     var found by remember { mutableStateOf<SearchResult?>(null) }
     val res = ctx.resources
+    val focus = LocalFocusManager.current
     var status by remember { mutableStateOf<String?>(null) }
     var failed by remember { mutableStateOf(false) }
     fun search() {
         if (query.isBlank()) return
+        focus.clearFocus() // closes the keyboard, which would otherwise cover the Confirm button
         status = res.getString(R.string.searching)
         failed = false
         scope.launch {
@@ -487,6 +490,7 @@ fun PlaceField(label: String, prefix: String, current: Place?, near: Place?) {
             Button(onClick = {
                 scope.launch {
                     ctx.savePlace(prefix, Place(r.label, r.position.lat, r.position.lon))
+                    focus.clearFocus()
                     found = null; query = ""; status = null
                 }
             }) { Text(stringResource(R.string.confirm)) }
