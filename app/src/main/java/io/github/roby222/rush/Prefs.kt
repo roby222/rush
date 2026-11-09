@@ -12,9 +12,11 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
 import java.time.DayOfWeek
 
 val Context.store by preferencesDataStore("settings")
+private val json = Json { ignoreUnknownKeys = true }
 
 data class Place(val name: String, val lat: Double, val lon: Double)
 
@@ -28,6 +30,7 @@ data class Settings(
     val lastTitle: String?,
     val lastText: String?,
     val lastAt: Long?,
+    val lastCheck: Check?,
 )
 
 object Keys {
@@ -38,6 +41,7 @@ object Keys {
     val lastTitle = stringPreferencesKey("last_title")
     val lastText = stringPreferencesKey("last_text")
     val lastAt = longPreferencesKey("last_at")
+    val lastCheck = stringPreferencesKey("last_check")
     fun name(p: String) = stringPreferencesKey("${p}_name")
     fun lat(p: String) = doublePreferencesKey("${p}_lat")
     fun lon(p: String) = doublePreferencesKey("${p}_lon")
@@ -61,6 +65,8 @@ fun Context.settingsFlow(): Flow<Settings> = store.data.map { p ->
         lastTitle = p[Keys.lastTitle],
         lastText = p[Keys.lastText],
         lastAt = p[Keys.lastAt],
+        // Unreadable (e.g. written by an older version) counts as no saved check.
+        lastCheck = p[Keys.lastCheck]?.let { runCatching { json.decodeFromString<Check>(it) }.getOrNull() },
     )
 }
 

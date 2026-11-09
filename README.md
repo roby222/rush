@@ -11,7 +11,7 @@ No backend: just AlarmManager, WorkManager and DataStore.
   <img src="docs/screenshots/settings.png" width="270" alt="Settings: route, days, time and minimum delay">
 </p>
 
-The UI is in Italian.
+The UI is in English and Italian, following the device language.
 
 ## Features
 

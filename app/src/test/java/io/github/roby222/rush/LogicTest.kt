@@ -38,35 +38,38 @@ class LogicTest {
             {"sectionType":"TRAFFIC","simpleCategory":"JAM","delayInSeconds":240,"effectiveSpeedInKmh":11},
             {"sectionType":"TRAFFIC","simpleCategory":"ROAD_WORK","delayInSeconds":60}]}]}
         """)
-        val (title, text) = describe("Palestra", r)
-        assertEquals("Palestra: 14 min (+5 traffico)", title)
-        assertEquals("6.4 km · senza traffico 9 min\nCoda: +4 min (11 km/h)\nLavori: +1 min", text.replace(',', '.'))
+        val c = r.toCheck("Palestra")
+        assertEquals(Check("Palestra", 14, 5, 9, 6.4,
+            listOf(TrafficEvent("JAM", null, 4, 11), TrafficEvent("ROAD_WORK", null, 1))), c)
     }
 
     private val home = Place("Casa", 45.0, 9.0)
     private val gym = Place("Palestra, Via Roma 1", 45.1, 9.1)
     private fun settings(from: Place? = home, to: Place? = gym, minDelay: Int = 10) =
-        Settings(from, to, mwf, 17, 20, minDelay, null, null, null)
+        Settings(from, to, mwf, 17, 20, minDelay, null, null, null, null)
     private fun delay(min: Int) = Route(Summary(6400, 840 + min * 60, min * 60, 840))
     private fun outcome(s: Settings, manual: Boolean = false, route: suspend (Place, Place) -> Route) =
         runBlocking { checkOutcome(s, manual, route) }
 
     @Test fun outcomeThreshold() {
-        assertFalse(outcome(settings()) { _, _ -> delay(5) }.third)
-        val (title, _, notify) = outcome(settings()) { _, _ -> delay(10) }
-        assertEquals("Palestra: 24 min (+10 traffico)", title)
-        assertTrue(notify)
-        assertTrue(outcome(settings(minDelay = 0)) { _, _ -> delay(0) }.third)
-        assertTrue(outcome(settings(), manual = true) { _, _ -> delay(0) }.third)
+        assertFalse(outcome(settings()) { _, _ -> delay(5) }.notify)
+        val o = outcome(settings()) { _, _ -> delay(10) }
+        assertTrue(o.notify)
+        assertEquals(24, o.check?.totalMin)
+        assertEquals(10, o.check?.delayMin)
+        assertTrue(outcome(settings(minDelay = 0)) { _, _ -> delay(0) }.notify)
+        assertTrue(outcome(settings(), manual = true) { _, _ -> delay(0) }.notify)
     }
 
     @Test fun outcomeErrors() {
-        assertEquals(Triple("Traffico: errore", "Imposta la partenza", true),
+        assertEquals(Outcome(true, error = CheckError.NO_FROM),
             outcome(settings(from = null)) { _, _ -> error("not called") })
-        assertEquals(Triple("Traffico: errore", "Imposta l'arrivo", true),
+        assertEquals(Outcome(true, error = CheckError.NO_TO),
             outcome(settings(to = null)) { _, _ -> error("not called") })
-        assertEquals(Triple("Traffico: errore", "HTTP 403: Forbidden", true),
+        assertEquals(Outcome(true, error = CheckError.FAILED, detail = "HTTP 403: Forbidden"),
             outcome(settings()) { _, _ -> error("HTTP 403: Forbidden") })
+        assertEquals(Outcome(true, error = CheckError.NO_ROUTE),
+            outcome(settings()) { _, _ -> TomTom.parseRoute("""{"routes":[]}""") })
     }
 
     @Test fun outcomeCancellationRethrown() {
@@ -87,12 +90,38 @@ class LogicTest {
         assertEquals(NEAR_RADIUS_M.toString(), near.queryParameter("radius"))
     }
 
-    @Test fun titleAndTrafficLevel() {
-        assertEquals(Triple("Palestra", 24, 10), parseTitle(describe("Palestra", delay(10)).first))
-        assertNull(parseTitle("Traffico: errore"))
-        assertEquals(0, trafficLevel(14, 2))  // small absolute delay
-        assertEquals(0, trafficLevel(40, 4))  // 11% of free flow
-        assertEquals(1, trafficLevel(14, 3))  // 27%
-        assertEquals(2, trafficLevel(14, 5))  // 56%
+    @Test fun slowdownsNamedByStreet() {
+        val c = TomTom.parseRoute("""
+            {"routes":[{"summary":{"lengthInMeters":1500,"travelTimeInSeconds":960,"trafficDelayInSeconds":480,
+            "noTrafficTravelTimeInSeconds":480},
+            "sections":[{"sectionType":"TRAFFIC","simpleCategory":"ROAD_WORK","delayInSeconds":120,"startPointIndex":40},
+            {"sectionType":"TRAFFIC","simpleCategory":"JAM","delayInSeconds":360,"effectiveSpeedInKmh":9,"startPointIndex":12}],
+            "guidance":{"instructions":[{"pointIndex":0,"street":"Piazza del Duomo"},
+            {"pointIndex":10,"street":"Corso Magenta"},{"pointIndex":35,"street":"","roadNumbers":["SS11"]}]}}]}
+        """).toCheck("Via Torino")
+        // Sorted in driving order; the street is the last one named before the slowdown starts.
+        assertEquals(listOf("JAM" to "Corso Magenta", "ROAD_WORK" to "SS11"), c.events.map { it.kind to it.street })
+        assertEquals(2, c.level)
+        assertEquals(2, c.copy(delayMin = 0, events = listOf(TrafficEvent(CLOSURE, delayMin = 0))).level)
+        val quiet = c.copy(events = listOf(TrafficEvent("JAM", "Via X", 0), TrafficEvent(CLOSURE, "Via Y", 0)))
+        assertEquals(listOf("Via Y"), quiet.notable.map { it.street })  // zero-delay jams stay silent
+    }
+
+    @Test fun backToBackSectionsMerge() {
+        val c = TomTom.parseRoute("""
+            {"routes":[{"summary":{"lengthInMeters":30000,"travelTimeInSeconds":3780,"trafficDelayInSeconds":300},
+            "sections":[{"sectionType":"TRAFFIC","simpleCategory":"JAM","delayInSeconds":180,"effectiveSpeedInKmh":20,"startPointIndex":50},
+            {"sectionType":"TRAFFIC","simpleCategory":"JAM","delayInSeconds":120,"effectiveSpeedInKmh":27,"startPointIndex":70}],
+            "guidance":{"instructions":[{"pointIndex":40,"street":"Long Island Expy E"}]}}]}
+        """).toCheck("JFK")
+        assertEquals(listOf(TrafficEvent("JAM", "Long Island Expy E", 5, 20)), c.events)
+    }
+
+    @Test fun trafficLevels() {
+        assertEquals(0, trafficLevel(14, 2))   // up to 2 min is normal
+        assertEquals(1, trafficLevel(63, 5))   // +5 min is a slowdown even on a long trip
+        assertEquals(1, trafficLevel(14, 3))   // 27% on a short trip
+        assertEquals(2, trafficLevel(14, 5))   // 56%: a short trip turns intense sooner
+        assertEquals(2, trafficLevel(70, 10))  // 10 min is intense on any trip
     }
 }

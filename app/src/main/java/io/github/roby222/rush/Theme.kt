@@ -22,6 +22,7 @@ private val Light = lightColorScheme(
     surface = Color.White, onSurface = Ink, onSurfaceVariant = Color(0xFF5F6368),
     surfaceContainerHighest = Color(0xFFF1F3F4), surfaceContainerHigh = Color(0xFFF1F3F4),
     outline = Color(0xFFDADCE0), outlineVariant = Color(0xFFE8EAED),
+    error = Color(0xFFC5221F), errorContainer = Color(0xFFFCE8E6), onErrorContainer = Ink,
 )
 
 private val Dark = darkColorScheme(
@@ -31,6 +32,7 @@ private val Dark = darkColorScheme(
     surface = Ink, onSurface = Color(0xFFE8EAED), onSurfaceVariant = Color(0xFFA8ADB4),
     surfaceContainerHighest = Color(0xFF2A2E35), surfaceContainerHigh = Color(0xFF2A2E35),
     outline = Color(0xFF5F6368), outlineVariant = Color(0xFF3C4043),
+    error = Color(0xFFF28B82), errorContainer = Color(0xFF3D2522), onErrorContainer = Color(0xFFE8EAED),
 )
 
 @Composable
@@ -40,11 +42,20 @@ fun RushTheme(content: @Composable () -> Unit) = MaterialTheme(
     content = content,
 )
 
-/** Travel-time color by traffic level, like map apps: green, orange, red. Contrast ≥4.5:1 on the cards. */
+/** Traffic color by level, like map apps: green, orange, red; orange stays clear of the brand Amber. Contrast ≥4.5:1 on the cards. */
 @Composable
 @ReadOnlyComposable
 fun trafficColor(level: Int): Color = if (isSystemInDarkTheme()) {
-    listOf(Color(0xFF81C995), Color(0xFFFDD663), Color(0xFFF28B82))[level]
+    listOf(Color(0xFF81C995), Color(0xFFFCAD70), Color(0xFFF28B82))[level]
 } else {
-    listOf(Color(0xFF137333), Color(0xFFB06000), Color(0xFFC5221F))[level]
+    listOf(Color(0xFF137333), Color(0xFFA04D00), Color(0xFFC5221F))[level]
+}
+
+/** Status card ground for a traffic level, a tint of [trafficColor] that keeps body text at ≥4.5:1. */
+@Composable
+@ReadOnlyComposable
+fun statusContainer(level: Int): Color = if (isSystemInDarkTheme()) {
+    listOf(Color(0xFF1F3326), Color(0xFF3B2A20), Color(0xFF3D2522))[level]
+} else {
+    listOf(Color(0xFFE6F4EA), Color(0xFFFEEFE3), Color(0xFFFCE8E6))[level]
 }
