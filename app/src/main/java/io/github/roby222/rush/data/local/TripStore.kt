@@ -63,10 +63,17 @@ fun Context.stateFlow(): Flow<AppState> = store.data.map { p ->
 
 suspend fun Context.trips(): List<Trip> = store.data.first().trips()
 
+suspend fun Context.result(id: Int): TripResult? = store.data.first().result(id)
+
 suspend fun Context.saveTrip(t: Trip): Trip {
     var saved = t
     store.edit { saved = it.putTrip(t) }
     return saved
+}
+
+/** Updates only the usual duration of trip [id], so an edit in progress is never overwritten. */
+suspend fun Context.setUsualMin(id: Int, min: Int) = store.edit { p ->
+    p.trips().firstOrNull { it.id == id }?.let { p.putTrip(it.copy(usualMin = min)) }
 }
 
 suspend fun Context.deleteTrip(id: Int) = store.edit { it.removeTrip(id) }

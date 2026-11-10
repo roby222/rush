@@ -22,6 +22,7 @@ class TomTomTest {
         assertEquals(Check("Palestra", 14, 5, 9, 6.4,
             listOf(TrafficEvent("JAM", null, 4, 11), TrafficEvent("ROAD_WORK", null, 1))), c)
     }
+
     @Test fun searchUrl() {
         val global = TomTom.searchUrl("Piazza Università 1", null)
         assertTrue(global.encodedPath.endsWith("/search/2/search/Piazza%20Universit%C3%A0%201.json"))
@@ -33,6 +34,7 @@ class TomTomTest {
         assertEquals("9.0", near.queryParameter("lon"))
         assertEquals(NEAR_RADIUS_M.toString(), near.queryParameter("radius"))
     }
+
     @Test fun slowdownsNamedByStreet() {
         val c = TomTom.parseRoute("""
             {"routes":[{"summary":{"lengthInMeters":1500,"travelTimeInSeconds":960,"trafficDelayInSeconds":480,
@@ -49,6 +51,7 @@ class TomTomTest {
         val quiet = c.copy(events = listOf(TrafficEvent("JAM", "Via X", 0), TrafficEvent(CLOSURE, "Via Y", 0)))
         assertEquals(listOf("Via Y"), quiet.notable.map { it.street })  // zero-delay jams stay silent
     }
+
     @Test fun backToBackSectionsMerge() {
         val c = TomTom.parseRoute("""
             {"routes":[{"summary":{"lengthInMeters":30000,"travelTimeInSeconds":3780,"trafficDelayInSeconds":300},

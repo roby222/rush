@@ -101,4 +101,19 @@
     <string name="ok">OK</string>
     <string name="time_past">This time has already passed</string>
     <string name="time_conflict_once">%1$s already runs at %2$s that day</string>
+    <string name="mode_check">Check at</string>
+    <string name="mode_arrive">Arrive by</string>
+    <string name="arrival_time">Arrival time</string>
+    <string name="arrive_help">Rush checks 30 and 10 minutes before you usually leave, and tells you when to go.</string>
+    <string name="arrive_at">arrive %1$s</string>
+    <string name="save_failed">Could not estimate the trip (%1$s). Check the connection and try again.</string>
+    <string name="notif_leave_by">%1$s: leave by %2$s</string>
+    <string name="notif_leave_now">%1$s: leave now, %2$d min</string>
+    <string name="notif_arrive">%1$d min (+%2$d traffic), there at %3$s</string>
+    <string name="notif_arrive_clear">%1$d min, there at %2$s</string>
+    <string name="verdict_leave_by">To be at %1$s at %2$s, leave by &lt;b&gt;%3$s&lt;/b&gt;: &lt;b&gt;%4$d min&lt;/b&gt; today, %5$d more because of traffic.</string>
+    <string name="verdict_leave_by_clear">To be at %1$s at %2$s, leave by &lt;b&gt;%3$s&lt;/b&gt;: &lt;b&gt;%4$d min&lt;/b&gt;, no queues.</string>
+    <string name="verdict_leave_now">&lt;b&gt;Leave now&lt;/b&gt;: to %1$s it takes &lt;b&gt;%2$d min&lt;/b&gt;, you get there at %3$s.</string>
+    <string name="widget_leave_by">leave by %1$s</string>
+    <string name="widget_leave_now">leave now</string>
 </resources>

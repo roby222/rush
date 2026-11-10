@@ -55,6 +55,7 @@ import io.github.roby222.rush.domain.nextCheck
 import io.github.roby222.rush.model.CLOSURE
 import io.github.roby222.rush.model.Trip
 import io.github.roby222.rush.model.TripResult
+import io.github.roby222.rush.notification.clock
 import io.github.roby222.rush.notification.eventTitle
 import io.github.roby222.rush.notification.kindLabel
 import io.github.roby222.rush.ui.theme.Amber
@@ -153,6 +154,7 @@ private data class WidgetUi(
     val title: String,
     val headline: String,
     val minutes: String?,   // "24 min (+6)", only for a successful check
+    val leave: String?,     // "leave by 18:14", an arrival trip's successful check (4x2 only)
     val detail: String?,
     val time: String?,      // full line for 4x2: "Checked at 17:20 · Next Wed 17:20"
     val shortTime: String?, // 2x1: just the check time, or the next one before any check
@@ -166,12 +168,12 @@ private data class WidgetUi(
             val res = ctx.resources
             if (trip == null) {
                 val text = res.getString(if (removed) R.string.widget_trip_removed else R.string.widget_no_trip)
-                return WidgetUi(0, "Rush", text, null, null, null, null, null, failed = false, stale = false, checking = false)
+                return WidgetUi(0, "Rush", text, null, null, null, null, null, null, failed = false, stale = false, checking = false)
             }
             val nextAt = nextCheck(trip, now)?.format(DateTimeFormatter.ofPattern("EEE HH:mm"))
             val next = nextAt?.let { res.getString(R.string.widget_next, it) }
             if (r == null) {
-                return WidgetUi(trip.id, trip.name, res.getString(R.string.no_check_yet), null, null, next, next,
+                return WidgetUi(trip.id, trip.name, res.getString(R.string.no_check_yet), null, null, null, next, next,
                     null, false, false, checking)
             }
             val at = Instant.ofEpochMilli(r.lastAt).atZone(now.zone)
@@ -179,14 +181,17 @@ private data class WidgetUi(
             val checkedAt = at.format(DateTimeFormatter.ofPattern(if (stale) "EEE HH:mm" else "HH:mm"))
             val checked = res.getString(if (stale) R.string.widget_checked_day else R.string.widget_checked_at, checkedAt)
             val time = listOfNotNull(checked, next).joinToString(" · ")
-            val c = r.check ?: return WidgetUi(trip.id, trip.name, res.getString(R.string.check_failed), null, r.text, time,
+            val c = r.check ?: return WidgetUi(trip.id, trip.name, res.getString(R.string.check_failed), null, null, r.text, time,
                 checkedAt, null, failed = true, stale = stale, checking = checking)
             val level = c.level
             val word = if (c.events.any { it.kind == CLOSURE }) res.kindLabel(CLOSURE) else res.getString(LEVELS[level])
             val worst = c.notable.maxByOrNull { if (it.kind == CLOSURE) Int.MAX_VALUE else it.delayMin }
             val minutes = if (c.delayMin > 0) res.getString(R.string.widget_minutes, c.totalMin, c.delayMin)
             else res.getString(R.string.widget_minutes_clear, c.totalMin)
-            return WidgetUi(trip.id, trip.name, word, minutes, worst?.let { res.eventTitle(it) }, time, checkedAt,
+            val leave = r.leaveBy?.let { Instant.ofEpochMilli(it).atZone(now.zone) }?.let {
+                if (it.isAfter(at)) res.getString(R.string.widget_leave_by, clock(it, at)) else res.getString(R.string.widget_leave_now)
+            }
+            return WidgetUi(trip.id, trip.name, word, minutes, leave, worst?.let { res.eventTitle(it) }, time, checkedAt,
                 level.takeUnless { stale }, failed = false, stale = stale, checking = checking)
         }
     }
@@ -223,7 +228,7 @@ private fun Content(ctx: Context, ui: WidgetUi) {
     ) {
         if (large) {
             Text(ui.title, maxLines = 1, style = TextStyle(color = muted, fontSize = 13.sp, fontWeight = FontWeight.Medium))
-            Text(listOfNotNull(ui.headline, ui.minutes).joinToString(" · "), maxLines = 2,
+            Text(listOfNotNull(ui.headline, ui.minutes, ui.leave).joinToString(" · "), maxLines = 2,
                 style = TextStyle(color = headlineColor, fontSize = 20.sp, fontWeight = FontWeight.Bold))
             ui.detail?.let { Text(it, maxLines = 2, style = TextStyle(color = if (ui.stale) muted else text, fontSize = 14.sp)) }
             Spacer(GlanceModifier.height(6.dp))

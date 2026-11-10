@@ -66,8 +66,17 @@ fun TripEditorScreen(vm: TripEditorViewModel, onSaved: (Int) -> Unit, onDeleted:
             }
         }
     }
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        listOf(false, true).forEachIndexed { i, option ->
+            SegmentedButton(selected = d.arriveBy == option, onClick = { vm.update { it.copy(arriveBy = option) } },
+                shape = SegmentedButtonDefaults.itemShape(i, 2)) {
+                Text(stringResource(if (option) R.string.mode_arrive else R.string.mode_check))
+            }
+        }
+    }
     val conflict = v.conflict
-    OutlinedTextField(d.time, { time -> vm.update { it.copy(time = time) } }, label = { Text(stringResource(R.string.time)) },
+    OutlinedTextField(d.time, { time -> vm.update { it.copy(time = time) } },
+        label = { Text(stringResource(if (d.arriveBy) R.string.arrival_time else R.string.time)) },
         isError = v.badTime || conflict != null || v.past, singleLine = true, modifier = Modifier.fillMaxWidth(),
         supportingText = {
             Text(when {
@@ -75,6 +84,7 @@ fun TripEditorScreen(vm: TripEditorViewModel, onSaved: (Int) -> Unit, onDeleted:
                 conflict != null -> stringResource(if (once) R.string.time_conflict_once else R.string.time_conflict,
                     conflict.name, "%02d:%02d".format(conflict.hour, conflict.minute))
                 v.past -> stringResource(R.string.time_past)
+                d.arriveBy -> stringResource(R.string.arrive_help)
                 else -> stringResource(R.string.time_help)
             })
         })
@@ -84,7 +94,12 @@ fun TripEditorScreen(vm: TripEditorViewModel, onSaved: (Int) -> Unit, onDeleted:
         isError = v.badDelay, singleLine = true, modifier = Modifier.fillMaxWidth(),
         supportingText = { Text(stringResource(if (v.badDelay) R.string.min_delay_error else R.string.min_delay_help)) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+    val saveError by vm.saveError.collectAsStateWithLifecycle()
     PrimaryButton(stringResource(R.string.save), enabled = v.canSave) { vm.save(onSaved) }
+    saveError?.let {
+        Text(stringResource(R.string.save_failed, it), style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 4.dp))
+    }
     v.missing?.let {
         Text(stringResource(if (it == Missing.NAME) R.string.trip_name_error else R.string.places_required),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,

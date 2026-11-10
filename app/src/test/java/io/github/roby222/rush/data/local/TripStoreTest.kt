@@ -17,6 +17,7 @@ class TripStoreTest {
         val saved = p.putTrip(trip(0, days = setOf(TUESDAY, THURSDAY), hour = 8, minute = 0))
         assertEquals(listOf(saved), p.trips())
     }
+
     @Test fun tripIdsGrowAndAreNeverReused() {
         val p = mutablePreferencesOf(stringPreferencesKey("from_name") to "old", intPreferencesKey("hour") to 9)
         val a = p.putTrip(trip(0))

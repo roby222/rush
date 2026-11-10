@@ -16,6 +16,7 @@ class TripWidgetTest {
         val justAfterMidnight = at(2026, 11, 10, 0, 30)
         assertTrue(isStale(justAfterMidnight.minusHours(1).toInstant().toEpochMilli(), justAfterMidnight)) // yesterday
     }
+
     @Test fun widgetCheckingEndsWithANewerResult() {
         val tap = 1_000_000L
         assertTrue(isChecking(tap, lastAt = tap - 60_000, now = tap + 5_000))   // older result: still checking

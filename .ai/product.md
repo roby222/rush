@@ -30,6 +30,7 @@ A scheduled watcher of a few recurring trips rather than a navigator: it speaks 
 
 ## Capabilities and Constraints
 - Weekly trips (chosen days and time) and one-off trips (a date and time, checked once, then removed); a new one-off trip starts today, from the departure of the last saved trip.
+- The time is either when to check (users who know when they leave) or when to arrive: then Rush checks twice before the usual departure and answers "leave by 18:14".
 - Scheduled exact alarm per trip; manual "check now"; threshold in minutes of delay
   (0 = always notify); a manual check shows its result in place and never notifies.
 - Places are searched once and saved as coordinates; search near the other saved place.

@@ -15,6 +15,9 @@ import io.github.roby222.rush.model.CLOSURE
 import io.github.roby222.rush.model.Check
 import io.github.roby222.rush.model.TrafficEvent
 import io.github.roby222.rush.work.EXTRA_TRIP
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 private const val CHANNEL = "traffic"
 
@@ -58,12 +61,28 @@ fun Resources.kindLabel(kind: String): String = when (kind) {
 fun Resources.eventTitle(e: TrafficEvent): String =
     e.street?.let { getString(R.string.event_on_street, kindLabel(e.kind), it) } ?: kindLabel(e.kind)
 
-/** Notification title and text for a check of the trip named [tripName]. */
-fun Resources.describe(tripName: String, c: Check): Pair<String, String> {
+/** "18:14" (in the device's format), with the weekday when [t] is not on [now]'s day. */
+fun clock(t: ZonedDateTime, now: ZonedDateTime): String {
+    val time = t.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+    return if (t.toLocalDate() == now.toLocalDate()) time else "${t.format(DateTimeFormatter.ofPattern("EEE"))} $time"
+}
+
+/**
+ * Notification title and text for a check of the trip named [tripName], made at [at]. An arrival trip
+ * has [leaveBy]: the title then says when to leave ("leave now" once that time has passed).
+ */
+fun Resources.describe(tripName: String, c: Check, leaveBy: ZonedDateTime? = null, at: ZonedDateTime = ZonedDateTime.now()): Pair<String, String> {
     // No "(+0)": a check without delay shows only the time.
-    val title = if (c.delayMin > 0) getString(R.string.notif_title, tripName, c.totalMin, c.delayMin)
-    else getString(R.string.notif_title_clear, tripName, c.totalMin)
-    val lines = listOf(getString(R.string.notif_summary, c.km, c.totalMin - c.delayMin)) + c.notable.map { e ->
+    val title = when {
+        leaveBy != null && !leaveBy.isAfter(at) -> getString(R.string.notif_leave_now, tripName, c.totalMin)
+        leaveBy != null -> getString(R.string.notif_leave_by, tripName, clock(leaveBy, at))
+        c.delayMin > 0 -> getString(R.string.notif_title, tripName, c.totalMin, c.delayMin)
+        else -> getString(R.string.notif_title_clear, tripName, c.totalMin)
+    }
+    val arrival = leaveBy?.let { clock(it.plusMinutes(c.totalMin.toLong()), at) }?.let {
+        if (c.delayMin > 0) getString(R.string.notif_arrive, c.totalMin, c.delayMin, it) else getString(R.string.notif_arrive_clear, c.totalMin, it)
+    }
+    val lines = listOfNotNull(arrival, getString(R.string.notif_summary, c.km, c.totalMin - c.delayMin)) + c.notable.map { e ->
         val line = if (e.delayMin > 0) getString(R.string.notif_event, eventTitle(e), e.delayMin) else eventTitle(e)
         e.speedKmh?.let { getString(R.string.notif_speed, line, it) } ?: line
     }

@@ -28,6 +28,7 @@ class TripEditorValidationTest {
         assertEquals(gymTrip, clash.conflict)
         assertFalse(clash.canSave)
     }
+
     @Test fun oneOffValidation() {
         val now = at(2026, 11, 10, 12, 0)
         val d = Draft(0, "Dentista", home, gym, setOf(MONDAY), "15:00", "0", java.time.LocalDate.of(2026, 11, 10))
@@ -37,5 +38,9 @@ class TripEditorValidationTest {
         val past = validate(d.copy(time = "11:59"), emptyList(), now)
         assertTrue(past.past)
         assertFalse(past.canSave)
+        // An arrival trip keeps its mode; only the arrival itself must be ahead (its checks need the duration).
+        val arrival = validate(d.copy(arriveBy = true, time = "12:10"), emptyList(), now)
+        assertTrue(arrival.canSave)
+        assertTrue(arrival.trip!!.arriveBy)
     }
 }

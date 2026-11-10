@@ -5,6 +5,7 @@ import io.github.roby222.rush.data.remote.Summary
 import io.github.roby222.rush.data.remote.TomTom
 import io.github.roby222.rush.gym
 import io.github.roby222.rush.home
+import io.github.roby222.rush.model.Check
 import io.github.roby222.rush.model.Place
 import io.github.roby222.rush.model.Trip
 import io.github.roby222.rush.mwf
@@ -20,8 +21,17 @@ class CheckOutcomeTest {
     private fun settings(from: Place? = home, to: Place? = gym, minDelay: Int = 10) =
         Trip(1, "Palestra", from, to, mwf, 17, 20, minDelay)
     private fun delay(min: Int) = Route(Summary(6400, 840 + min * 60, min * 60, 840))
-    private fun outcome(s: Trip, manual: Boolean = false, route: suspend (Place, Place) -> Route) =
-        runBlocking { checkOutcome(s, manual, route) }
+    private fun outcome(s: Trip, manual: Boolean = false, earlier: Check? = null, route: suspend (Place, Place) -> Route) =
+        runBlocking { checkOutcome(s, manual, earlier, route) }
+
+    @Test fun followUpSpeaksOnlyWithNews() {
+        val quiet = Check("X", 16, 2, 14, 6.4)
+        val warned = Check("X", 26, 12, 14, 6.4)
+        assertTrue(outcome(settings(), earlier = quiet) { _, _ -> delay(12) }.notify)    // first stayed quiet
+        assertFalse(outcome(settings(), earlier = warned) { _, _ -> delay(13) }.notify)  // already said
+        assertTrue(outcome(settings(), earlier = warned) { _, _ -> delay(15) }.notify)   // 3 min worse
+        assertFalse(outcome(settings(), earlier = quiet) { _, _ -> delay(5) }.notify)    // still under threshold
+    }
 
     @Test fun outcomeThreshold() {
         assertFalse(outcome(settings()) { _, _ -> delay(5) }.notify)
@@ -33,6 +43,7 @@ class CheckOutcomeTest {
         assertFalse(outcome(settings(minDelay = 0), manual = true) { _, _ -> delay(30) }.notify)
         assertFalse(outcome(settings(from = null), manual = true) { _, _ -> error("not called") }.notify)
     }
+
     @Test fun outcomeErrors() {
         assertEquals(Outcome(true, error = CheckError.NO_FROM),
             outcome(settings(from = null)) { _, _ -> error("not called") })
@@ -43,6 +54,7 @@ class CheckOutcomeTest {
         assertEquals(Outcome(true, error = CheckError.NO_ROUTE),
             outcome(settings()) { _, _ -> TomTom.parseRoute("""{"routes":[]}""") })
     }
+
     @Test fun outcomeCancellationRethrown() {
         assertThrows(CancellationException::class.java) {
             outcome(settings()) { _, _ -> throw CancellationException("stopped") }

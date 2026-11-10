@@ -17,21 +17,21 @@ Rush looks like a map app: neutral surfaces, travel time colored by traffic, one
 The Home is the notification at full size (direction contract in `.impeccable/surfaces/`).
 
 0. With more than one trip, a scrollable row of filter chips with the trip names; each chip's dot has the color of the trip's last result (gray: never checked, red family: failed). With one trip the row is hidden. With no trips, the verdict card says so and the primary button adds the first one.
-1. Verdict card, tinted by level: headline naming the problem and its street ("Coda in Corso Magenta", or "Tutto regolare"), beside it a filled pill with the level in sentence case (Rallentamento, Traffico intenso, Strada chiusa) shown only when level > 0, one sentence with minutes and how much earlier to leave, "Apri in Maps" when there is a problem, update time. Headline, pill and ground crossfade together when a new check changes the state (600 ms). Error and never-checked states reuse the same card.
+1. Verdict card, tinted by level: headline naming the problem and its street ("Coda in Corso Magenta", or "Tutto regolare"), beside it a filled pill with the level in sentence case (Rallentamento, Traffico intenso, Strada chiusa) shown only when level > 0, one sentence with minutes and how much earlier to leave (for an arrival trip: "Per essere a X alle 18:50, parti entro le **18:14**", or "**Parti subito**" when that time had passed at the check), "Apri in Maps" when there is a problem, update time. Headline, pill and ground crossfade together when a new check changes the state (600 ms). Error and never-checked states reuse the same card.
 2. "Sul percorso": the trip as a directions list on a 4dp route line colored like a map: green where traffic flows, the slowdown's color around each slowdown, gray before the first check. Departure (hollow dot), each notable slowdown in driving order, destination (amber dot).
 3. "Controlla ora" (shows "Controllo in corso…" while the manual work runs), next automatic check, then system warnings.
 
 ## Trips and editor
 
-- The gear opens "Tragitti": one card per trip (name, days · time or "Tue 10 Nov · 15:00" for a one-off trip, departure → destination), tap to edit, primary "Aggiungi tragitto" at the bottom.
-- The editor: name, departure, destination (search → result → Conferma), a segmented "Ogni settimana / Una volta", then the day chips or a date button opening the Material date picker (past days disabled), time, minimum delay, primary "Salva", then "Elimina tragitto" as an error-colored text button behind a Material confirmation dialog. A new trip takes its name from the destination when the name is still empty.
+- The gear opens "Tragitti": one card per trip (name, days · time or "Tue 10 Nov · 15:00" for a one-off trip, "arrivo 18:50" for an arrival trip, departure → destination), tap to edit, primary "Aggiungi tragitto" at the bottom.
+- The editor: name, departure, destination (search → result → Conferma), a segmented "Ogni settimana / Una volta", then the day chips or a date button opening the Material date picker (past days disabled), a segmented "Controlla alle / Arriva entro le", the time (labelled "Ora di arrivo" with a line on when Rush checks), minimum delay, primary "Salva", then "Elimina tragitto" as an error-colored text button behind a Material confirmation dialog. A new trip takes its name from the destination when the name is still empty.
 - Errors sit under their field: a time clash names the other trip ("C'è già «Palestra» alle 17:20 in uno di questi giorni") and keeps Salva disabled; a one-off time already passed says so under the time field; a missing name or place is said in one line under Salva.
 
 ## Widget (`widget/TripWidget.kt`, Glance)
 
 One trip per widget, chosen when the widget is added (skipped with a single trip) and changeable from the launcher's pencil. Same palette as the app through `ui/theme/Palette` (Glance cannot read the Compose theme), day/night colors, 24dp corners.
 
-- 4x2: trip name; "level · minutes (+delay)" in the traffic color, the "(+delay)" left out when it is 0 (in the notification title too); the first notable slowdown with its street; "Checked at … · Next …"; the amber "Check now" pill, which reads "Checking…" until a newer result lands.
+- 4x2: trip name; "level · minutes (+delay)" in the traffic color, followed by "parti alle 18:14" for an arrival trip, the "(+delay)" left out when it is 0 (in the notification title too); the first notable slowdown with its street; "Checked at … · Next …"; the amber "Check now" pill, which reads "Checking…" until a newer result lands.
 - 2x1: name and minutes on one line, the level in words, only the check time.
 - Ground: the verdict card's tint for a fresh result, the error tint for a failed check, neutral otherwise.
 - A result older than 2 hours or from an earlier day is never shown as current: neutral ground, everything muted except the time line, which turns bold ("Last check Mon 23:32").

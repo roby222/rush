@@ -33,9 +33,12 @@ data class Draft(
     val minDelay: String = "",
     /** The day of a one-off trip; null for a weekly one. */
     val date: LocalDate? = null,
+    /** The time is the arrival, not the check. */
+    val arriveBy: Boolean = false,
 ) : java.io.Serializable {
     companion object {
-        fun of(t: Trip) = Draft(t.id, t.name, t.from, t.to, t.days, "%02d:%02d".format(t.hour, t.minute), t.minDelayMin.toString(), t.day())
+        fun of(t: Trip) = Draft(t.id, t.name, t.from, t.to, t.days, "%02d:%02d".format(t.hour, t.minute),
+            t.minDelayMin.toString(), t.day(), t.arriveBy)
     }
 }
 
@@ -55,14 +58,16 @@ fun validate(d: Draft, trips: List<Trip>, now: ZonedDateTime = ZonedDateTime.now
         ?.takeIf { (h, m) -> h in 0..23 && m in 0..59 }
     val delay = d.minDelay.trim().toIntOrNull()?.takeIf { it >= 0 }
     val trip = time?.let { (h, m) ->
-        Trip(d.id, d.name.trim(), d.from, d.to, if (d.date == null) d.days else emptySet(), h, m, delay ?: 0, d.date?.toString())
+        Trip(d.id, d.name.trim(), d.from, d.to, if (d.date == null) d.days else emptySet(), h, m, delay ?: 0,
+            d.date?.toString(), d.arriveBy)
     }
     val missing = when {
         d.name.isBlank() -> Missing.NAME
         d.from == null || d.to == null -> Missing.PLACES
         else -> null
     }
-    val past = trip?.date != null && nextCheck(trip, now) == null
+    // An arrival trip's checks depend on its usual duration, still unknown here: the arrival itself must be ahead.
+    val past = trip?.date != null && nextCheck(trip.copy(arriveBy = false), now) == null
     return Validation(trip, time == null, delay == null, trip?.let { timeConflict(it, trips) }, missing, past)
 }
 
@@ -86,6 +91,10 @@ class TripEditorViewModel(app: Application, private val handle: SavedStateHandle
     val validation: StateFlow<Validation> = combine(draft, trips) { d, t -> validate(d, t) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, validate(draft.value, emptyList()))
 
+    private val _saveError = MutableStateFlow<String?>(null)
+    /** Why the last save failed (an arrival trip's duration could not be estimated), or null. */
+    val saveError: StateFlow<String?> = _saveError
+
     private val _search = MutableStateFlow<Map<End, SearchState>>(emptyMap())
     val search: StateFlow<Map<End, SearchState>> = _search
 
@@ -93,6 +102,7 @@ class TripEditorViewModel(app: Application, private val handle: SavedStateHandle
     fun open(trip: Trip) {
         handle[DRAFT] = Draft.of(trip)
         _search.value = emptyMap()
+        _saveError.value = null
     }
 
     fun update(change: (Draft) -> Draft) { handle[DRAFT] = change(draft.value) }
@@ -139,7 +149,18 @@ class TripEditorViewModel(app: Application, private val handle: SavedStateHandle
     fun save(onSaved: (Int) -> Unit) {
         val v = validation.value
         val trip = v.trip?.takeIf { v.canSave } ?: return
-        viewModelScope.launch { onSaved(repo.save(trip).id) }
+        _saveError.value = null
+        viewModelScope.launch {
+            val saved = try {
+                repo.save(trip)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _saveError.value = e.message ?: e.javaClass.simpleName
+                return@launch
+            }
+            onSaved(saved.id)
+        }
     }
 
     fun delete(onDeleted: () -> Unit) {

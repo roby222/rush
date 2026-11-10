@@ -27,7 +27,8 @@ fun TripsScreen(trips: List<Trip>, onEdit: (Int) -> Unit) {
         Card(onClick = { onEdit(t.id) }, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(t.name, style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.trip_schedule, whenLabel(t, locale), "%02d:%02d".format(t.hour, t.minute)),
+                Text(stringResource(R.string.trip_schedule, whenLabel(t, locale), "%02d:%02d".format(t.hour, t.minute)
+                    .let { if (t.arriveBy) stringResource(R.string.arrive_at, it) else it }),
                     style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
                 Text("${t.from?.name?.substringBefore(",").orEmpty()} → ${t.to?.name?.substringBefore(",").orEmpty()}",
                     style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)

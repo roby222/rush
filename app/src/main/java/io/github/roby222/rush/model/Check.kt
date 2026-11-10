@@ -24,6 +24,12 @@ const val CLOSURE = "ROAD_CLOSURE"
     /** Slowdowns worth telling the user about: any closure, otherwise only those that cost time. */
     val notable get() = events.filter { it.kind == CLOSURE || it.delayMin > 0 }
 
+    /**
+     * The usual duration at this time of day: TomTom's delay is measured against the typical traffic, not
+     * an empty road, so this is longer than [freeFlowMin] (e.g. 32 min against 25 on a city route).
+     */
+    val usualMin get() = totalMin - delayMin
+
     /** 0 = regolare, 1 = rallentamento, 2 = intenso o strada chiusa. */
     val level get() = if (events.any { it.kind == CLOSURE }) 2 else trafficLevel(totalMin, delayMin)
 }

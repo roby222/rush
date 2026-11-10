@@ -25,6 +25,7 @@ import io.github.roby222.rush.model.AppState
 import io.github.roby222.rush.model.CLOSURE
 import io.github.roby222.rush.model.Check
 import io.github.roby222.rush.model.Trip
+import io.github.roby222.rush.notification.clock
 import io.github.roby222.rush.notification.eventTitle
 import io.github.roby222.rush.notification.kindLabel
 import io.github.roby222.rush.ui.HomeUi
@@ -37,6 +38,8 @@ import io.github.roby222.rush.ui.components.Warning
 import io.github.roby222.rush.ui.theme.statusContainer
 import io.github.roby222.rush.ui.theme.trafficColor
 import java.text.DateFormat
+import java.time.Instant
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Date
@@ -63,7 +66,7 @@ fun HomeScreen(vm: MainViewModel, home: HomeUi, onAdd: () -> Unit) {
             // A failed check is saved without a check; its text says what went wrong.
             r.check == null -> Verdict(cs.errorContainer, cs.error, null, stringResource(R.string.check_failed),
                 AnnotatedString(r.text), updated)
-            else -> VerdictFor(r.check, trip, updated)
+            else -> VerdictFor(r.check, trip, updated, r.leaveBy?.let { at(it) }, at(r.lastAt))
         }
         RouteCard(trip, r?.check)
         val checking by remember(trip.id) { vm.checking(trip.id) }.collectAsStateWithLifecycle(false)
@@ -95,6 +98,8 @@ fun HomeScreen(vm: MainViewModel, home: HomeUi, onAdd: () -> Unit) {
             critical = false, Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkg))
     }
 }
+private fun at(epochMs: Long): ZonedDateTime = Instant.ofEpochMilli(epochMs).atZone(ZoneId.systemDefault())
+
 /** One chip per trip; its dot carries the color of the trip's last result. */
 @Composable
 private fun TripChips(state: AppState, selected: Int, onShow: (Int) -> Unit) {
@@ -118,7 +123,7 @@ private val LEVELS = listOf(R.string.level_normal, R.string.level_slow, R.string
 
 /** The verdict for a successful check: what is happening, where, and what to do about it. */
 @Composable
-private fun VerdictFor(c: Check, trip: Trip, updated: String?) {
+private fun VerdictFor(c: Check, trip: Trip, updated: String?, leaveBy: ZonedDateTime?, checkedAt: ZonedDateTime) {
     val ctx = LocalContext.current
     val res = ctx.resources
     val level = c.level
@@ -132,7 +137,12 @@ private fun VerdictFor(c: Check, trip: Trip, updated: String?) {
     }
     // The strings carry <b> for the figures to emphasise; the destination is escaped before it meets the markup.
     val dest = TextUtils.htmlEncode(c.destination)
+    val arrival = leaveBy?.plusMinutes(c.totalMin.toLong())?.let { clock(it, checkedAt) }
     val sentence = AnnotatedString.fromHtml(when {
+        // An arrival trip: when to leave, as of the check ("leave now" once that time had passed).
+        leaveBy != null && !leaveBy.isAfter(checkedAt) -> stringResource(R.string.verdict_leave_now, dest, c.totalMin, arrival!!)
+        leaveBy != null && c.delayMin == 0 -> stringResource(R.string.verdict_leave_by_clear, dest, arrival!!, clock(leaveBy, checkedAt), c.totalMin)
+        leaveBy != null -> stringResource(R.string.verdict_leave_by, dest, arrival!!, clock(leaveBy, checkedAt), c.totalMin, c.delayMin)
         level == 0 && c.delayMin == 0 -> stringResource(R.string.verdict_clear, dest, c.totalMin)
         level == 0 -> stringResource(R.string.verdict_minor, dest, c.totalMin, c.delayMin)
         // TomTom's delay is what today's traffic adds, so compare with the time without it, not with an empty road.

@@ -101,4 +101,19 @@
     <string name="ok">OK</string>
     <string name="time_past">Quest\'ora è già passata</string>
     <string name="time_conflict_once">C\'è già «%1$s» alle %2$s quel giorno</string>
+    <string name="mode_check">Controlla alle</string>
+    <string name="mode_arrive">Arriva entro le</string>
+    <string name="arrival_time">Ora di arrivo</string>
+    <string name="arrive_help">Rush controlla 30 e 10 minuti prima della tua partenza abituale e ti dice quando partire.</string>
+    <string name="arrive_at">arrivo %1$s</string>
+    <string name="save_failed">Impossibile stimare il tragitto (%1$s). Controlla la connessione e riprova.</string>
+    <string name="notif_leave_by">%1$s: parti entro le %2$s</string>
+    <string name="notif_leave_now">%1$s: parti subito, %2$d min</string>
+    <string name="notif_arrive">%1$d min (+%2$d traffico), arrivo alle %3$s</string>
+    <string name="notif_arrive_clear">%1$d min, arrivo alle %2$s</string>
+    <string name="verdict_leave_by">Per essere a %1$s alle %2$s, parti entro le &lt;b&gt;%3$s&lt;/b&gt;: oggi &lt;b&gt;%4$d min&lt;/b&gt;, %5$d in più per il traffico.</string>
+    <string name="verdict_leave_by_clear">Per essere a %1$s alle %2$s, parti entro le &lt;b&gt;%3$s&lt;/b&gt;: &lt;b&gt;%4$d min&lt;/b&gt;, nessuna coda.</string>
+    <string name="verdict_leave_now">&lt;b&gt;Parti subito&lt;/b&gt;: per %1$s servono &lt;b&gt;%2$d min&lt;/b&gt;, arrivi alle %3$s.</string>
+    <string name="widget_leave_by">parti alle %1$s</string>
+    <string name="widget_leave_now">parti subito</string>
 </resources>

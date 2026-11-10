@@ -5,9 +5,13 @@ import androidx.work.WorkManager
 import io.github.roby222.rush.data.local.deleteTrip
 import io.github.roby222.rush.data.local.saveTrip
 import io.github.roby222.rush.data.local.stateFlow
+import io.github.roby222.rush.data.local.trips
 import io.github.roby222.rush.data.remote.SearchResult
 import io.github.roby222.rush.data.remote.TomTom
+import io.github.roby222.rush.data.remote.toCheck
+import io.github.roby222.rush.domain.nextCheck
 import io.github.roby222.rush.model.AppState
+import io.github.roby222.rush.model.Check
 import io.github.roby222.rush.model.Place
 import io.github.roby222.rush.model.Trip
 import io.github.roby222.rush.widget.TripWidget
@@ -17,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import java.time.ZonedDateTime
 
 /**
  * The one door the UI uses for trips and their checks. Saving or deleting a trip also updates the
@@ -25,10 +30,26 @@ import kotlinx.coroutines.withContext
 class TripRepository(private val ctx: Context) {
     val state: Flow<AppState> = ctx.stateFlow()
 
-    suspend fun save(t: Trip): Trip = ctx.saveTrip(t).also {
-        Scheduler.scheduleAll(ctx)
-        TripWidget.refresh(ctx)
+    /**
+     * Saves [t] and reschedules. An arrival trip needs its usual duration to know when to check: it is
+     * asked to TomTom when the places are new or changed, and a failed call (e.g. offline) fails the save.
+     */
+    suspend fun save(t: Trip): Trip {
+        val toSave = if (!t.arriveBy || t.from == null || t.to == null) t else {
+            val old = ctx.trips().firstOrNull { it.id == t.id }
+            t.copy(usualMin = old?.usualMin?.takeIf { old.from == t.from && old.to == t.to } ?: usualMin(t.from, t.to))
+        }
+        return ctx.saveTrip(toSave).also {
+            Scheduler.scheduleAll(ctx)
+            // A one-off arrival saved too late for its checks gets one right away (it notifies like a scheduled one).
+            if (it.arriveBy && it.date != null && nextCheck(it, ZonedDateTime.now()) == null) Scheduler.checkNow(ctx, it.id, manual = false)
+            TripWidget.refresh(ctx)
+        }
     }
+
+    /** A first estimate of the usual duration; the trip's first scheduled check refines it (see [Check.usualMin]). */
+    private suspend fun usualMin(from: Place, to: Place): Int =
+        withContext(Dispatchers.IO) { TomTom.route(from.lat, from.lon, to.lat, to.lon).toCheck("").usualMin }
 
     suspend fun delete(id: Int) {
         ctx.deleteTrip(id)

@@ -35,15 +35,17 @@ Glance gotcha: while a session is open, an update recomposes the content without
 - `alarm_ids`: trip ids with an alarm set, so alarms of deleted trips get cancelled.
 - No migration from v0.2.0 (one user, who re-entered the trip): its keys are dropped on the first save, and its alarm (request code 0) is cancelled by `scheduleAll`.
 - A one-off trip is a `Trip` with `date` (ISO day) set; its `days` are empty and ignored.
+- An arrival trip has `arriveBy` (hour:minute is the arrival) and `usualMin`; its results carry `leaveBy` (epoch ms).
 - Unreadable JSON decodes to nothing (no trips / no result); keep new fields optional or defaulted.
 
 ## Check flow
 
 1. Each trip has its own exact alarm: request code = trip id, extra `trip` = id. `AlarmReceiver` enqueues that trip's check, then `scheduleAll` sets every trip's next alarm and cancels stale ones; any other broadcast (boot, clock change, update) only reschedules.
-2. `CheckWorker` loads the trip (a deleted trip ends the work silently) and calls `checkOutcome(trip, manual, route)`: an `Outcome` with notify flag, `Check?` or `CheckError`.
-3. The worker turns it into words (`Resources.describe(tripName, check)`), saves `result_<id>` (a failed check is a result without `Check`, and the Home shows its text as the error) and notifies with id `1000 + trip id`, title prefixed by the trip name; tapping the notification opens the Home on that trip.
+2. `CheckWorker` loads the trip (a deleted trip ends the work silently) and calls `checkOutcome(trip, manual, earlier, route)`: an `Outcome` with notify flag, `Check?` or `CheckError`.
+3. The worker turns it into words (`Resources.describe(tripName, check, leaveBy)`), saves `result_<id>` (a failed check is a result without `Check`, and the Home shows its text as the error) and notifies with id `1000 + trip id`, title prefixed by the trip name; tapping the notification opens the Home on that trip.
 4. A scheduled check notifies on error or when delay ≥ the trip's threshold; a manual check never notifies (the app or widget that started it shows the result).
-5. One-off trips (ticket 08): checked once, at the chosen departure time (not the arrival time: TomTom's `arriveAt` was not needed). After its scheduled check the worker deletes the trip; the notification carries the result. `scheduleAll` first drops one-off trips more than `ONE_OFF_GRACE` (1 h) past their time, e.g. after the phone was off: the grace lets the check started by the alarm still find its trip. A manual check never deletes it, and neither does a check before the trip's time (`doneAfterCheck`): `AlarmReceiver` is exported, so a forged early broadcast must not delete the trip.
+5. One-off trips (ticket 08): checked once, at the chosen departure time (not the arrival time: TomTom's `arriveAt` was not needed). After its scheduled check the worker deletes the trip; the notification carries the result. `scheduleAll` first drops one-off trips more than `ONE_OFF_GRACE` (1 h) past their time, e.g. after the phone was off: the grace lets the check started by the alarm still find its trip. A manual check never deletes it, and neither does a check before the trip's last check time (`doneAfterCheck`): `AlarmReceiver` is exported, so a forged early broadcast must not delete the trip.
+6. Arrival trips (ticket 10): the time is when to arrive. Live traffic only: TomTom's `arriveAt` predicts from historical traffic, so Rush checks shortly before leaving and computes `leaveBy = arrival − live duration`. Two checks, `FIRST_LEAD` (30 min) and `FOLLOW_UP_LEAD` (10 min) before the usual departure (`arrival − usualMin`); one alarm per trip still, `nextCheck` returns whichever is next. `usualMin` is estimated by one route call when the trip is saved with new places (a failed call fails the save), then replaced by the first scheduled check of each arrival (`Check.usualMin`, near the trip's own hour), which moves the second check. The second check (`isFollowUp`, ±window for late alarms) gets the first one's `Check` as `earlier` and notifies only when the first stayed quiet or the delay grew by `FOLLOW_UP_WORSE_MIN` (3). A one-off arrival saved too late for both checks is checked at once.
 
 Logic stays language-free: `Check` and `Outcome` hold numbers and codes (`TrafficEvent.kind` is TomTom's `simpleCategory`, `CheckError`), and text is produced only from string resources at the edges. Tests assert on data, never on wording.
 
@@ -51,14 +53,14 @@ Logic stays language-free: `Check` and `Outcome` hold numbers and codes (`Traffi
 
 - `CancellationException` is rethrown in `checkOutcome`: a check stopped by the system saves nothing and notifies nothing. The HTTP call runs in `runInterruptible` so cancellation aborts it.
 - Work queues per trip: `check-<id>` (scheduled, REPLACE) and `check-manual-<id>` (KEEP). A manual check never cancels a scheduled one, no trip cancels another, repeated taps run one check.
-- Two trips never run in the same minute: the editor refuses a trip with the same hour:minute as another on a shared day (`timeConflict`). The same time on different days is allowed; a one-off trip shares a day with a weekly one when its date falls on one of the weekly days.
+- Two trips never run in the same minute: the editor refuses a trip with the same hour:minute and the same meaning (check or arrival) as another on a shared day (`timeConflict`). The same time on different days is allowed; a one-off trip shares a day with a weekly one when its date falls on one of the weekly days.
 - The Home puts in front the latest trip with a problem (slowdown or failed check) in the last 3 hours (`FEATURED_PROBLEM_WINDOW`), else the trip checked next; a chip or a notification overrides it.
 
 ## TomTom
 
 - Routing request: `traffic=true`, `departAt=now`, `computeTravelTimeFor=all`, `sectionType=traffic`, `instructionsType=text`, `language` = device locale.
 - A traffic section has `startPointIndex`; its street is the `street` (else first `roadNumbers`) of the last guidance instruction with `pointIndex` ≤ that index. `sections` is absent when the road is clear.
-- `trafficDelayInSeconds` is what live traffic adds to the usual time; `noTrafficTravelTimeInSeconds` is an empty road (often far lower). Compare today with `total - delay`, never with the empty road.
+- `trafficDelayInSeconds` is what live traffic adds to the usual time; `noTrafficTravelTimeInSeconds` is an empty road (often far lower). Compare today with `total - delay`, never with the empty road. The same holds for an arrival trip's usual duration: on a city route the empty road said 25 min while the usual time was 32, which would eat a quarter of the margin.
 - Back-to-back sections of the same kind and street are merged into one slowdown.
 - Many sections carry 0 s delay; `Check.notable` keeps closures and sections that cost time, and only those reach the Home and the notification.
 - `trafficLevel` counts minutes first (the user leaves at a fixed time): green up to 2 min of delay, red from 10 min or from +40% over free-flow time, orange between; any closure is red.

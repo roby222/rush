@@ -21,22 +21,57 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ScheduleTest {
-    @Test fun nextTrigger() {
+    @Test fun nextWeeklyCheck() {
         // 2026-11-09 is a Monday
-        assertEquals(at(2026, 11, 9, 17, 20), nextTrigger(at(2026, 11, 9, 10, 0), mwf, 17, 20))
-        assertEquals(at(2026, 11, 11, 17, 20), nextTrigger(at(2026, 11, 9, 17, 20), mwf, 17, 20))
-        assertEquals(at(2026, 11, 16, 17, 20), nextTrigger(at(2026, 11, 13, 18, 0), mwf, 17, 20))
-        assertEquals(at(2026, 11, 16, 17, 20), nextTrigger(at(2026, 11, 9, 18, 0), setOf(MONDAY), 17, 20))
-        assertNull(nextTrigger(at(2026, 11, 9, 10, 0), emptySet(), 17, 20))
+        assertEquals(at(2026, 11, 9, 17, 20), nextCheck(trip(1), at(2026, 11, 9, 10, 0)))
+        assertEquals(at(2026, 11, 11, 17, 20), nextCheck(trip(1), at(2026, 11, 9, 17, 20)))
+        assertEquals(at(2026, 11, 16, 17, 20), nextCheck(trip(1), at(2026, 11, 13, 18, 0)))
+        assertEquals(at(2026, 11, 16, 17, 20), nextCheck(trip(1, days = setOf(MONDAY)), at(2026, 11, 9, 18, 0)))
+        assertNull(nextCheck(trip(1, days = emptySet()), at(2026, 11, 9, 10, 0)))
         // DST end in Rome: 2026-10-25, the local time stays 17:20
-        assertEquals(at(2026, 10, 26, 17, 20), nextTrigger(at(2026, 10, 24, 18, 0), mwf, 17, 20))
+        assertEquals(at(2026, 10, 26, 17, 20), nextCheck(trip(1), at(2026, 10, 24, 18, 0)))
     }
+
+    // --- arrival time (ticket 10) ---
+
+    /** Be at the gym at 18:50 on Mon/Wed/Fri; 22 min without traffic: usual departure 18:28. */
+    private val arrive = trip(7, hour = 18, minute = 50).copy(arriveBy = true, usualMin = 22)
+
+    @Test fun arrivalTripIsCheckedTwiceBeforeTheUsualDeparture() {
+        assertEquals(at(2026, 11, 9, 17, 58), nextCheck(arrive, at(2026, 11, 9, 10, 0)))
+        assertEquals(at(2026, 11, 9, 18, 18), nextCheck(arrive, at(2026, 11, 9, 17, 58)))
+        assertEquals(at(2026, 11, 11, 17, 58), nextCheck(arrive, at(2026, 11, 9, 18, 18)))
+        assertEquals(at(2026, 11, 9, 18, 50), arrivalFor(arrive, at(2026, 11, 9, 17, 58)))
+        assertNull(arrivalFor(trip(1), at(2026, 11, 9, 17, 58)))
+        assertFalse(isFollowUp(arrive, at(2026, 11, 9, 17, 58)))
+        assertTrue(isFollowUp(arrive, at(2026, 11, 9, 18, 18)))
+        assertTrue(isFollowUp(arrive, at(2026, 11, 9, 18, 25)))        // a late alarm is still the second check
+        assertFalse(isFollowUp(trip(1), at(2026, 11, 9, 17, 20)))
+        // An arrival just after midnight is checked the evening before.
+        val early = arrive.copy(hour = 0, minute = 10, days = setOf(TUESDAY))
+        assertEquals(at(2026, 11, 9, 23, 18), nextCheck(early, at(2026, 11, 9, 20, 0)))
+    }
+
+    @Test fun oneOffArrivalEndsAfterItsSecondCheck() {
+        val dentist = arrive.copy(days = emptySet(), date = "2026-11-10", hour = 15, minute = 0)   // checks 14:08, 14:28
+        assertEquals(at(2026, 11, 10, 14, 8), nextCheck(dentist, at(2026, 11, 10, 9, 0)))
+        assertFalse(doneAfterCheck(dentist, at(2026, 11, 10, 14, 8)))
+        assertTrue(doneAfterCheck(dentist, at(2026, 11, 10, 14, 28)))
+        assertNull(nextCheck(dentist, at(2026, 11, 10, 14, 28)))
+    }
+
+    @Test fun checkAndArrivalTimesDoNotConflict() {
+        assertNull(timeConflict(arrive.copy(id = 0, hour = 17, minute = 20), listOf(trip(1))))
+        assertEquals(arrive, timeConflict(arrive.copy(id = 0, days = setOf(FRIDAY)), listOf(arrive)))
+    }
+
     @Test fun oneAlarmPerTrip() {
         val now = at(2026, 11, 9, 10, 0) // Monday
         val plan = alarmPlan(listOf(trip(1), trip(2, days = setOf(TUESDAY), hour = 8, minute = 0), trip(3, days = emptySet())), now)
         assertEquals(mapOf(1 to at(2026, 11, 9, 17, 20), 2 to at(2026, 11, 10, 8, 0)), plan)
         assertTrue(scheduledWork(1) != scheduledWork(2) && manualWork(1) != scheduledWork(1))
     }
+
     @Test fun sameMinuteOnASharedDayConflicts() {
         val gymTrip = trip(1).copy(name = "Palestra")
         assertEquals(gymTrip, timeConflict(trip(0, days = setOf(FRIDAY)), listOf(gymTrip)))
@@ -44,6 +79,7 @@ class ScheduleTest {
         assertNull(timeConflict(trip(0, minute = 21), listOf(gymTrip)))
         assertNull(timeConflict(gymTrip, listOf(gymTrip)))                          // editing itself
     }
+
     @Test fun featuredTripPrefersARecentProblem() {
         val now = at(2026, 11, 9, 10, 0)
         val morning = trip(1, days = setOf(MONDAY), hour = 11, minute = 0)          // next check: today 11:00
@@ -58,6 +94,7 @@ class ScheduleTest {
         assertEquals(morning, featuredTrip(trips, mapOf(2 to result(1, 0)), now))    // all clear is not a problem
         assertNull(featuredTrip(emptyList(), emptyMap(), now))
     }
+
     @Test fun oneOffTripIsCheckedOnceThenExpires() {
         // 2026-11-10 is a Tuesday
         val t = trip(5, days = emptySet(), hour = 15, minute = 0).copy(date = "2026-11-10")
@@ -73,6 +110,7 @@ class ScheduleTest {
         val json = mutablePreferencesOf().apply { putTrip(t.copy(id = 0)) }
         assertEquals("2026-11-10", json.trips().single().date)
     }
+
     @Test fun oneOffTripConflicts() {
         val gymMwf = trip(1)                                               // Mon/Wed/Fri 17:20
         val wed = trip(0, days = emptySet()).copy(date = "2026-11-11")    // a Wednesday, 17:20
