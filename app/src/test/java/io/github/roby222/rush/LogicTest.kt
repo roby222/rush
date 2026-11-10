@@ -214,6 +214,9 @@ class LogicTest {
         assertFalse(expired(t, at(2026, 11, 10, 15, 30)))                 // its check may still be running
         assertTrue(expired(t, at(2026, 11, 10, 16, 1)))                   // e.g. the phone was off
         assertFalse(expired(trip(1), at(2026, 11, 10, 16, 1)))            // weekly trips never expire
+        assertFalse(doneAfterCheck(t, at(2026, 11, 10, 9, 0)))            // early (forged) check keeps it
+        assertTrue(doneAfterCheck(t, at(2026, 11, 10, 15, 0)))
+        assertFalse(doneAfterCheck(trip(1), at(2026, 11, 10, 18, 0)))
         val json = mutablePreferencesOf().apply { putTrip(t.copy(id = 0)) }
         assertEquals("2026-11-10", json.trips().single().date)
     }

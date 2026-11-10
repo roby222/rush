@@ -54,6 +54,9 @@ fun nextCheck(t: Trip, now: ZonedDateTime): ZonedDateTime? =
 /** A one-off trip whose time passed more than [ONE_OFF_GRACE] ago, e.g. with the phone off: it is removed. */
 fun expired(t: Trip, now: ZonedDateTime): Boolean = oneOffAt(t, now)?.isBefore(now.minus(ONE_OFF_GRACE)) == true
 
+/** Whether a scheduled check at [now] is the last one of [t]: a one-off trip whose time has come. */
+fun doneAfterCheck(t: Trip, now: ZonedDateTime): Boolean = oneOffAt(t, now)?.isAfter(now) == false
+
 /** Next alarm time per trip id; weekly trips without days and past one-off trips have none. */
 fun alarmPlan(trips: List<Trip>, now: ZonedDateTime): Map<Int, ZonedDateTime> =
     trips.mapNotNull { t -> nextCheck(t, now)?.let { t.id to it } }.toMap()
