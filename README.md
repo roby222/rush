@@ -5,11 +5,9 @@ A personal Android app that checks your commutes before you leave. For each trip
 notification with the time, the delay and any jams on the way.
 No backend: just AlarmManager, WorkManager and DataStore.
 
-<p align="center">
-  <a href="https://github.com/roby222/rush/releases/download/v0.3.0/rush-promo-16x9.mp4"><img src="docs/promo.gif" width="720" alt="30-second promo: the usual 36-minute trip turns into 42, Rush sends a notification, the Home says to leave 6 minutes earlier and shows where the jam is"></a>
-  <br>
-  <sub>Click for the 30 s video with sound (<a href="https://github.com/roby222/rush/releases/download/v0.3.0/rush-promo-9x16.mp4">vertical cut</a>)</sub>
-</p>
+https://github.com/user-attachments/assets/faa72bfd-2e94-42f6-8ba4-274551659ac2
+
+<p align="center"><sub>30 s promo with sound · <a href="https://github.com/roby222/rush/releases/download/v0.3.0/rush-promo-9x16.mp4">vertical cut</a> (download)</sub></p>
 
 <p align="center">
   <img src="docs/screenshots/home-traffic.png" width="250" alt="Home on a slow day: one chip per trip, the jam and its street, how much earlier to leave, the route colored by traffic">
