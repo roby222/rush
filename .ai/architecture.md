@@ -1,6 +1,6 @@
 # Architecture
 
-No backend: AlarmManager fires a WorkManager job that calls TomTom, saves the result in DataStore and maybe notifies. The README has the package map.
+No backend: AlarmManager fires a WorkManager job that calls TomTom, saves the result in DataStore and maybe notifies.
 
 ## Layers
 
