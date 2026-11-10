@@ -6,11 +6,17 @@ notification with the time, the delay and any jams on the way.
 No backend: just AlarmManager, WorkManager and DataStore.
 
 <p align="center">
-  <img src="docs/screenshots/home-traffic.png" width="250" alt="Home on a slow day: the jam and its street, how much earlier to leave, the route colored by traffic">
+  <img src="docs/screenshots/home-traffic.png" width="250" alt="Home on a slow day: one chip per trip, the jam and its street, how much earlier to leave, the route colored by traffic">
   &nbsp;
   <img src="docs/screenshots/home-clear.png" width="250" alt="Home on a normal day: all clear, travel time, route with no slowdowns">
   &nbsp;
-  <img src="docs/screenshots/settings.png" width="250" alt="Settings: departure and destination, days and time">
+  <img src="docs/screenshots/trips.png" width="250" alt="Trips: one card per trip with days, time, departure and destination">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/editor.png" width="250" alt="Trip editor: name, departure and destination found by search">
+  &nbsp;
+  <img src="docs/screenshots/widget.png" width="400" alt="Home-screen widget: trip name, slowdown with minutes and delay, the street, check time and Check now">
 </p>
 
 The UI is in English and Italian, following the device language.
