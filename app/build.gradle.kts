@@ -18,9 +18,27 @@ android {
         applicationId = "io.github.roby222.rush"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.2.0"
-        buildConfigField("String", "TOMTOM_API_KEY", "\"${localProps.getProperty("TOMTOM_API_KEY", "")}\"")
+        versionCode = 3
+        versionName = "0.3.0"
+    }
+    // The release key lives outside the repo; its path and passwords come from local.properties (never in git).
+    signingConfigs {
+        localProps.getProperty("RELEASE_STORE_FILE")?.let { path ->
+            create("release") {
+                storeFile = file(path)
+                storePassword = localProps.getProperty("RELEASE_STORE_PASSWORD")
+                keyAlias = localProps.getProperty("RELEASE_KEY_ALIAS")
+                keyPassword = localProps.getProperty("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        // Debug builds (Android Studio) read the developer's key; a release carries none: its user enters their own.
+        debug { buildConfigField("String", "TOMTOM_API_KEY", "\"${localProps.getProperty("TOMTOM_API_KEY", "")}\"") }
+        release {
+            buildConfigField("String", "TOMTOM_API_KEY", "\"\"")
+            signingConfig = signingConfigs.findByName("release")
+        }
     }
     buildFeatures {
         compose = true

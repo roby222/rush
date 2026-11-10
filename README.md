@@ -47,16 +47,30 @@ The UI is in English and Italian, following the device language.
 - **System warnings**: if notifications, background running or exact alarms are not allowed, Home shows a
   warning with a one-tap fix; it disappears as soon as the setting is fixed.
 
-## TomTom key
+## Install
 
-1. Sign up at <https://developer.tomtom.com> (free plan, no card required; about 2,500 requests/day).
-2. Dashboard → **API & SDK Keys** → *Create key*, enable **Routing API** and **Search API**.
-3. Add it to `local.properties` in the project root (already ignored by git):
+Download the APK from the [latest release](https://github.com/roby222/rush/releases/latest) and open it on the
+phone (allow installs from your browser or file manager when asked).
 
-   ```properties
-   TOMTOM_API_KEY=your_key
-   ```
-4. Rebuild: the key ends up in `BuildConfig.TOMTOM_API_KEY`.
+On first launch Rush asks for **your own TomTom key**: the release APK carries none.
+
+1. Sign in or sign up at <https://my.tomtom.com/keys> (free, no card required; about 2,500 requests/day).
+2. Create a key with access to **Search** and **Routing**.
+3. Paste it in Rush and tap **Verify and save**: Rush tries it once and saves it only if TomTom accepts it.
+
+The key stays on the phone and is left out of backups. Change it any time from the gear → **TomTom key**.
+
+## TomTom key for development
+
+Debug builds read the key from `local.properties` in the project root (already ignored by git), so you are not
+asked for it:
+
+```properties
+TOMTOM_API_KEY=your_key
+```
+
+A key entered in the app wins over this one, which is handy to try the first-launch screen. Release builds never
+include it.
 
 ## Build and install
 

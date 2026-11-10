@@ -16,7 +16,9 @@
 
 - Work lands on `main`, pushed to `github.com/roby222/rush` (public repo).
 - Tags are `vX.Y.Z` and match `versionName` in `app/build.gradle.kts`; bump it in a commit before tagging.
-- `local.properties` (API key) is never committed.
+- `local.properties` (API key, release signing passwords) is never committed.
+- Release APK: `./gradlew assembleRelease` signs with `~/.android/rush-release.jks` (created 2026-11-10, alias `rush`; path and passwords in `local.properties`). Every update must be signed with this same key, or phones refuse it as an update: the user keeps a backup. Before publishing, check the APK holds no TomTom key (see `architecture.md`, Platform choices) and verify the signature with `apksigner verify`.
+- Publish: tag `vX.Y.Z`, then a GitHub release with the APK attached as `rush-X.Y.Z.apk` (`gh release create`); the README's Install section links to the latest release.
 
 ## Local issue tracker
 

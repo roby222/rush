@@ -35,6 +35,7 @@ A scheduled watcher of a few recurring trips rather than a navigator: it speaks 
   (0 = always notify); a manual check shows its result in place and never notifies.
 - Places are picked from suggestions while typing and saved as coordinates; suggestions prefer places near the other one.
 - A new trip is set up in three steps (where, when, alerts); an existing one is edited on one screen.
+- Each user brings their own free TomTom key (my.tomtom.com/keys), entered at first launch; the release APK has none.
 - No backend; data stays on the device. Sideloaded (uses USE_EXACT_ALARM and the direct battery
   exemption request, both restricted on Google Play).
 - UI languages: English (fallback) and Italian, chosen by the device language.

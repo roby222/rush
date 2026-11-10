@@ -1,5 +1,7 @@
 package io.github.roby222.rush.domain
 
+import io.github.roby222.rush.data.remote.KeyRefusedException
+import io.github.roby222.rush.data.remote.MissingKeyException
 import io.github.roby222.rush.data.remote.NoRouteException
 import io.github.roby222.rush.data.remote.Route
 import io.github.roby222.rush.data.remote.toCheck
@@ -11,7 +13,7 @@ import kotlinx.coroutines.CancellationException
 /** How much more delay makes an arrival trip's second check worth a notification after the first one. */
 const val FOLLOW_UP_WORSE_MIN = 3
 
-enum class CheckError { NO_FROM, NO_TO, NO_ROUTE, FAILED }
+enum class CheckError { NO_FROM, NO_TO, NO_ROUTE, NO_KEY, BAD_KEY, FAILED }
 
 /** What one check produced: a [check], or an [error] with an optional technical [detail]. */
 data class Outcome(val notify: Boolean, val check: Check? = null, val error: CheckError? = null, val detail: String? = null)
@@ -45,6 +47,10 @@ suspend fun checkOutcome(
     throw e
 } catch (e: NoRouteException) {
     Outcome(true, error = CheckError.NO_ROUTE)
+} catch (e: MissingKeyException) {
+    Outcome(true, error = CheckError.NO_KEY)
+} catch (e: KeyRefusedException) {
+    Outcome(true, error = CheckError.BAD_KEY)
 } catch (e: Exception) {
     Outcome(true, error = CheckError.FAILED, detail = e.message ?: e.javaClass.simpleName)
 }.let { if (manual) it.copy(notify = false) else it }

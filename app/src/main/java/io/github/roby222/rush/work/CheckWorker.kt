@@ -5,11 +5,13 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import io.github.roby222.rush.R
+import io.github.roby222.rush.data.local.apiKey
 import io.github.roby222.rush.data.local.deleteTrip
 import io.github.roby222.rush.data.local.result
 import io.github.roby222.rush.data.local.saveResult
 import io.github.roby222.rush.data.local.setUsualMin
 import io.github.roby222.rush.data.local.trips
+import io.github.roby222.rush.data.remote.MissingKeyException
 import io.github.roby222.rush.data.remote.TomTom
 import io.github.roby222.rush.domain.CheckError
 import io.github.roby222.rush.domain.FIRST_LEAD
@@ -38,7 +40,8 @@ class CheckWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
         else ctx.result(trip.id)?.takeIf { it.lastAt >= now.minus(FIRST_LEAD).toInstant().toEpochMilli() }?.check
         val o = checkOutcome(trip, manual, earlier) { from, to ->
             // Interruptible so a cancelled work aborts the HTTP call instead of finishing it.
-            runInterruptible(Dispatchers.IO) { TomTom.route(from.lat, from.lon, to.lat, to.lon) }
+            val key = ctx.apiKey() ?: throw MissingKeyException()
+            runInterruptible(Dispatchers.IO) { TomTom.route(key, from.lat, from.lon, to.lat, to.lon) }
         }
         val leaveBy = o.check?.let { c -> arrivalFor(trip, now)?.minusMinutes(c.totalMin.toLong()) }
         val (title, text) = o.check?.let { ctx.resources.describe(trip.name, it, leaveBy, now) } ?: (ctx.getString(R.string.error_title, trip.name) to
@@ -46,6 +49,8 @@ class CheckWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
                 CheckError.NO_FROM -> ctx.getString(R.string.error_no_from)
                 CheckError.NO_TO -> ctx.getString(R.string.error_no_to)
                 CheckError.NO_ROUTE -> ctx.getString(R.string.error_no_route)
+                CheckError.NO_KEY -> ctx.getString(R.string.error_no_key)
+                CheckError.BAD_KEY -> ctx.getString(R.string.error_bad_key)
                 else -> o.detail.orEmpty()
             })
         // A failed check is a result without a check: the Home then shows its text as the error.

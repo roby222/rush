@@ -2,9 +2,14 @@ package io.github.roby222.rush.data
 
 import android.content.Context
 import androidx.work.WorkManager
+import io.github.roby222.rush.data.local.apiKey
+import io.github.roby222.rush.data.local.apiKeyFlow
 import io.github.roby222.rush.data.local.deleteTrip
+import io.github.roby222.rush.data.local.saveApiKey
+import io.github.roby222.rush.data.local.storedApiKey
 import io.github.roby222.rush.data.local.saveTrip
 import io.github.roby222.rush.data.local.stateFlow
+import io.github.roby222.rush.data.remote.MissingKeyException
 import io.github.roby222.rush.data.remote.SearchResult
 import io.github.roby222.rush.data.remote.TomTom
 import io.github.roby222.rush.data.remote.toCheck
@@ -46,7 +51,7 @@ class TripRepository(private val ctx: Context) {
 
     /** A first estimate of the usual duration; the trip's first scheduled check refines it (see [Check.usualMin]). */
     suspend fun usualMin(from: Place, to: Place): Int =
-        withContext(Dispatchers.IO) { TomTom.route(from.lat, from.lon, to.lat, to.lon).toCheck("").usualMin }
+        withContext(Dispatchers.IO) { TomTom.route(key(), from.lat, from.lon, to.lat, to.lon).toCheck("").usualMin }
 
     suspend fun delete(id: Int) {
         ctx.deleteTrip(id)
@@ -63,5 +68,22 @@ class TripRepository(private val ctx: Context) {
         .map { infos -> infos.any { !it.state.isFinished } }
 
     suspend fun suggest(query: String, near: Place?): List<SearchResult> =
-        withContext(Dispatchers.IO) { TomTom.suggest(query, near) }
+        withContext(Dispatchers.IO) { TomTom.suggest(key(), query, near) }
+
+    private suspend fun key() = ctx.apiKey() ?: throw MissingKeyException()
+
+    /** Whether a TomTom key exists (entered by the user, or a debug build's). */
+    val hasKey: Flow<Boolean> = ctx.apiKeyFlow().map { it != null }
+
+    /** The last four characters of the key the user entered, to recognise it; null when none was entered. */
+    suspend fun storedKeyEnd(): String? = ctx.storedApiKey()?.takeLast(4)
+
+    /**
+     * Tries [key] with one search and saves it only if TomTom accepts it. Throws [KeyRefusedException]
+     * when TomTom refuses it, and the network error otherwise; nothing is saved then.
+     */
+    suspend fun verifyAndSaveKey(key: String) {
+        withContext(Dispatchers.IO) { TomTom.suggest(key.trim(), "Milano", null) }
+        ctx.saveApiKey(key)
+    }
 }

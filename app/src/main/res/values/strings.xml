@@ -128,4 +128,20 @@
     <string name="alert_other">Other…</string>
     <string name="summary">Summary</string>
     <string name="summary_checks">Checks at %1$s and %2$s</string>
+    <string name="key_title">TomTom key</string>
+    <string name="key_headline">Your TomTom key</string>
+    <string name="key_intro">Rush reads live traffic from TomTom with your own key. It is free, with no card, and covers about 2,500 requests a day: plenty for your trips.</string>
+    <string name="key_step_1">Sign in or sign up at my.tomtom.com.</string>
+    <string name="key_step_2">Under Keys, create a key with access to Search and Routing.</string>
+    <string name="key_step_3">Copy it and paste it here.</string>
+    <string name="key_open_site">Open my.tomtom.com/keys</string>
+    <string name="key_field">TomTom key</string>
+    <string name="key_save">Verify and save</string>
+    <string name="key_checking">Checking…</string>
+    <string name="key_refused">TomTom refused this key: check it was copied whole and has Search and Routing.</string>
+    <string name="key_failed">Could not check the key (%1$s). Check the connection and try again.</string>
+    <string name="key_current">Key in use ends in …%1$s</string>
+    <string name="key_privacy">The key stays on this phone and is left out of backups.</string>
+    <string name="error_no_key">Enter your TomTom key: ⚙ → TomTom key.</string>
+    <string name="error_bad_key">TomTom refused the key. Change it: ⚙ → TomTom key.</string>
 </resources>

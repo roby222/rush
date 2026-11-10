@@ -31,6 +31,10 @@ The Home is the notification at full size (direction contract in `.impeccable/su
 - Alerts: radio choices "Sempre", "Con almeno 5 min di ritardo", "Con almeno 10 min", "Altro…" (which shows the minutes field).
 - Errors sit under their field: a time clash names the other trip ("C'è già «Palestra» alle 17:20 in uno di questi giorni") and keeps Salva disabled; a one-off time already passed says so under the time field; a missing name or place is said in one line under Salva.
 
+## TomTom key
+
+Shown alone, with no back arrow, while there is no key (a fresh release install); later from "Chiave TomTom" under the trips list. Headline "La tua chiave TomTom", one paragraph on why (own free key, quota), three numbered steps, an outlined "Apri my.tomtom.com/keys", the key field (plain text: the user checks what they pasted; under it the last 4 characters of the key in use), primary "Verifica e salva" ("Verifica in corso…" while checking), and a muted line that the key stays on the phone. A refused key or a network error is said under the field and nothing is saved.
+
 ## Widget (`widget/TripWidget.kt`, Glance)
 
 One trip per widget, chosen when the widget is added (skipped with a single trip) and changeable from the launcher's pencil. Same palette as the app through `ui/theme/Palette` (Glance cannot read the Compose theme), day/night colors, 24dp corners.

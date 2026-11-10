@@ -17,7 +17,7 @@ import java.util.Locale
 
 /** The list of trips: tap one to edit it. */
 @Composable
-fun TripsScreen(trips: List<Trip>, onEdit: (Int) -> Unit) {
+fun TripsScreen(trips: List<Trip>, onEdit: (Int) -> Unit, onKey: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     if (trips.isEmpty()) {
         Text(stringResource(R.string.no_trips), style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant)
@@ -34,6 +34,7 @@ fun TripsScreen(trips: List<Trip>, onEdit: (Int) -> Unit) {
         }
     }
     PrimaryButton(stringResource(R.string.add_trip)) { onEdit(0) }
+    TextButton(onClick = onKey) { Text(stringResource(R.string.key_title)) }
 }
 
 /** "Mon, Wed, Fri · 17:20", "Tue 10 Nov · 15:00" or "Mon, Wed, Fri · arrive 18:50". */

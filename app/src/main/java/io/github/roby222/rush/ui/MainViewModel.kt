@@ -9,10 +9,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import io.github.roby222.rush.data.TripRepository
+import io.github.roby222.rush.data.remote.KeyRefusedException
 import io.github.roby222.rush.domain.featuredTrip
 import io.github.roby222.rush.model.AppState
 import io.github.roby222.rush.model.Trip
 import java.time.ZonedDateTime
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,6 +31,14 @@ data class HomeUi(val state: AppState, val trip: Trip?)
 
 private const val SHOWN = "shown"
 
+/** Where "Verify and save" of a TomTom key stands. */
+sealed interface KeyCheck {
+    data object Idle : KeyCheck
+    data object Checking : KeyCheck
+    data object Refused : KeyCheck
+    data class Failed(val message: String) : KeyCheck
+}
+
 class MainViewModel(app: Application, private val handle: SavedStateHandle) : AndroidViewModel(app) {
     private val repo = TripRepository(app)
 
@@ -41,6 +51,32 @@ class MainViewModel(app: Application, private val handle: SavedStateHandle) : An
 
     private val _status = MutableStateFlow(SystemStatus())
     val status: StateFlow<SystemStatus> = _status
+
+    /** Whether a TomTom key exists; null until known. Without one the app asks for it first. */
+    val hasKey: StateFlow<Boolean?> = repo.hasKey.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val _keyCheck = MutableStateFlow<KeyCheck>(KeyCheck.Idle)
+    val keyCheck: StateFlow<KeyCheck> = _keyCheck
+
+    suspend fun storedKeyEnd(): String? = repo.storedKeyEnd()
+
+    /** Tries [key] and saves it only if TomTom accepts it; [onSaved] runs then. */
+    fun saveKey(key: String, onSaved: () -> Unit) {
+        _keyCheck.value = KeyCheck.Checking
+        viewModelScope.launch {
+            _keyCheck.value = try {
+                repo.verifyAndSaveKey(key)
+                onSaved()
+                KeyCheck.Idle
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: KeyRefusedException) {
+                KeyCheck.Refused
+            } catch (e: Exception) {
+                KeyCheck.Failed(e.message ?: e.javaClass.simpleName)
+            }
+        }
+    }
 
     fun show(tripId: Int) { handle[SHOWN] = tripId }
 

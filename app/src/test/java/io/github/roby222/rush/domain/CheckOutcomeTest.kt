@@ -1,5 +1,7 @@
 package io.github.roby222.rush.domain
 
+import io.github.roby222.rush.data.remote.KeyRefusedException
+import io.github.roby222.rush.data.remote.MissingKeyException
 import io.github.roby222.rush.data.remote.Route
 import io.github.roby222.rush.data.remote.Summary
 import io.github.roby222.rush.data.remote.TomTom
@@ -51,6 +53,10 @@ class CheckOutcomeTest {
             outcome(settings(to = null)) { _, _ -> error("not called") })
         assertEquals(Outcome(true, error = CheckError.FAILED, detail = "HTTP 403: Forbidden"),
             outcome(settings()) { _, _ -> error("HTTP 403: Forbidden") })
+        assertEquals(Outcome(true, error = CheckError.BAD_KEY),
+            outcome(settings()) { _, _ -> throw KeyRefusedException("HTTP 403") })
+        assertEquals(Outcome(true, error = CheckError.NO_KEY),
+            outcome(settings()) { _, _ -> throw MissingKeyException() })
         assertEquals(Outcome(true, error = CheckError.NO_ROUTE),
             outcome(settings()) { _, _ -> TomTom.parseRoute("""{"routes":[]}""") })
     }

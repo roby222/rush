@@ -24,14 +24,15 @@ class TomTomTest {
     }
 
     @Test fun searchUrl() {
-        val global = TomTom.searchUrl("Piazza Università 1", null)
+        val global = TomTom.searchUrl("k3y", "Piazza Università 1", null)
+        assertEquals("k3y", global.queryParameter("key"))
         assertEquals("true", global.queryParameter("typeahead"))     // suggestions while typing
         assertEquals(SUGGESTIONS.toString(), global.queryParameter("limit"))
         assertTrue(global.encodedPath.endsWith("/search/2/search/Piazza%20Universit%C3%A0%201.json"))
         assertNull(global.queryParameter("lat"))
         assertNull(global.queryParameter("lon"))
         assertNull(global.queryParameter("radius"))
-        val near = TomTom.searchUrl("Via Roma", home)
+        val near = TomTom.searchUrl("k3y", "Via Roma", home)
         assertEquals("45.0", near.queryParameter("lat"))
         assertEquals("9.0", near.queryParameter("lon"))
         assertEquals(NEAR_RADIUS_M.toString(), near.queryParameter("radius"))

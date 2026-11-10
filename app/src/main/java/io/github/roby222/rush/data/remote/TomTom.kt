@@ -1,6 +1,5 @@
 package io.github.roby222.rush.data.remote
 
-import io.github.roby222.rush.BuildConfig
 import io.github.roby222.rush.model.Check
 import io.github.roby222.rush.model.Place
 import io.github.roby222.rush.model.TrafficEvent
@@ -50,17 +49,24 @@ const val SUGGESTIONS = 5
 
 class NoRouteException : Exception("No route found")
 
+/** No TomTom key yet: the user has not entered one (a release build carries none). */
+class MissingKeyException : Exception("No TomTom API key")
+
+/** TomTom answered 401/403: the key is wrong, revoked or lacks an API. */
+class KeyRefusedException(detail: String) : Exception("TomTom refused the API key: $detail")
+
 object TomTom {
     private val http = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS).build()
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun base() = HttpUrl.Builder().scheme("https").host("api.tomtom.com")
-        .addQueryParameter("key", BuildConfig.TOMTOM_API_KEY)
+    private fun base(key: String) = HttpUrl.Builder().scheme("https").host("api.tomtom.com")
+        .addQueryParameter("key", key)
 
     private fun get(url: HttpUrl): String {
-        check(BuildConfig.TOMTOM_API_KEY.isNotBlank()) { "TOMTOM_API_KEY missing in local.properties" }
+        if (url.queryParameter("key").isNullOrBlank()) throw MissingKeyException()
         http.newCall(Request.Builder().url(url).build()).execute().use { resp ->
             val body = resp.body.string()
+            if (resp.code == 401 || resp.code == 403) throw KeyRefusedException("HTTP ${resp.code}")
             check(resp.isSuccessful) { "HTTP ${resp.code}: ${body.take(200)}" }
             return body
         }
@@ -70,7 +76,7 @@ object TomTom {
      * Suggestions URL for a query still being typed (`typeahead`); with [near] results are limited to
      * [NEAR_RADIUS_M] around that point and carry their distance from it.
      */
-    fun searchUrl(query: String, near: Place?): HttpUrl = base()
+    fun searchUrl(key: String, query: String, near: Place?): HttpUrl = base(key)
         .addPathSegments("search/2/search").addPathSegment("$query.json")
         .addQueryParameter("typeahead", "true")
         .addQueryParameter("limit", SUGGESTIONS.toString())
@@ -83,11 +89,11 @@ object TomTom {
         }
         .build()
 
-    fun suggest(query: String, near: Place?): List<SearchResult> =
-        json.decodeFromString<SearchResponse>(get(searchUrl(query, near))).results
+    fun suggest(key: String, query: String, near: Place?): List<SearchResult> =
+        json.decodeFromString<SearchResponse>(get(searchUrl(key, query, near))).results
 
-    fun route(fromLat: Double, fromLon: Double, toLat: Double, toLon: Double): Route {
-        val url = base().addPathSegments("routing/1/calculateRoute")
+    fun route(key: String, fromLat: Double, fromLon: Double, toLat: Double, toLon: Double): Route {
+        val url = base(key).addPathSegments("routing/1/calculateRoute")
             .addPathSegment("$fromLat,$fromLon:$toLat,$toLon").addPathSegment("json")
             .addQueryParameter("traffic", "true")
             .addQueryParameter("travelMode", "car")

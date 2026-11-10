@@ -128,4 +128,20 @@
     <string name="alert_other">Altro…</string>
     <string name="summary">Riepilogo</string>
     <string name="summary_checks">Controlli alle %1$s e alle %2$s</string>
+    <string name="key_title">Chiave TomTom</string>
+    <string name="key_headline">La tua chiave TomTom</string>
+    <string name="key_intro">Rush legge il traffico live da TomTom con una chiave tua. È gratuita, senza carta, e copre circa 2.500 richieste al giorno: ne bastano molte meno per i tuoi tragitti.</string>
+    <string name="key_step_1">Accedi o registrati su my.tomtom.com.</string>
+    <string name="key_step_2">In Keys crea una chiave con accesso a Search e Routing.</string>
+    <string name="key_step_3">Copiala e incollala qui.</string>
+    <string name="key_open_site">Apri my.tomtom.com/keys</string>
+    <string name="key_field">Chiave TomTom</string>
+    <string name="key_save">Verifica e salva</string>
+    <string name="key_checking">Verifica in corso…</string>
+    <string name="key_refused">TomTom ha rifiutato questa chiave: controlla di averla copiata intera e che abbia Search e Routing.</string>
+    <string name="key_failed">Impossibile verificare la chiave (%1$s). Controlla la connessione e riprova.</string>
+    <string name="key_current">La chiave in uso finisce con …%1$s</string>
+    <string name="key_privacy">La chiave resta su questo telefono ed è esclusa dai backup.</string>
+    <string name="error_no_key">Inserisci la tua chiave TomTom: ⚙ → Chiave TomTom.</string>
+    <string name="error_bad_key">TomTom ha rifiutato la chiave. Cambiala da ⚙ → Chiave TomTom.</string>
 </resources>
