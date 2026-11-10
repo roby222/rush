@@ -1,17 +1,20 @@
 # Architecture
 
-No backend: AlarmManager fires a WorkManager job that calls TomTom, saves the result in DataStore and maybe notifies. The README has the file map.
+No backend: AlarmManager fires a WorkManager job that calls TomTom, saves the result in DataStore and maybe notifies. The README has the package map.
 
 ## Layers
 
-MVVM, as Google recommends for Android: screens → ViewModel → repository → pure logic.
+Android's recommended architecture (UI layer → data layer, with an optional domain layer), MVVM in the UI. The package is the layer: a change belongs where its package says. `model` depends on nothing; `domain` on `model` and the TomTom route types; the app's screens reach data only through `TripRepository` (the widget, which cannot host a ViewModel, reads `TripStore` directly).
 
-- `ui/` screens (`RushApp` shell, `HomeScreen`, `TripsScreen`, `TripEditorScreen`, shared `Components`, `Theme`) read state from a ViewModel and call its actions; they never touch DataStore or WorkManager.
-- `ui/MainViewModel`: app state (`HomeUi`: trips, results, the trip in front), system warnings, "check now". `ui/TripEditorViewModel`: the draft (`Draft` in the `SavedStateHandle`), place search, save and delete; `validate(draft, trips)` is pure and tested.
-- `TripRepository`: the only door to trips and checks. Saving or deleting a trip also reschedules the alarms, so no screen can leave them stale.
-- Pure logic, covered by `LogicTest`: `TomTom.kt` (route → `Check`, levels), `Scheduler.kt` (`nextTrigger`, `nextCheck`, `expired`, `alarmPlan`, `timeConflict`, `featuredTrip`), `Prefs.kt` (`putTrip`/`removeTrip` on `MutablePreferences`), `checkOutcome`.
-- `MainActivity` only hosts the Compose tree and forwards the notification's trip id and `onResume`.
-- `widget/`: the Glance widget (`TripWidget`, its receiver, `CheckNowAction`) and `TripWidgetConfigActivity`. It reads the same DataStore as the Home and never calls TomTom.
+- `ui/` screens, one package each (`home`, `trips`, `editor`), plus `components` and `theme`, read state from a ViewModel and call its actions; they never touch DataStore or WorkManager. `RushApp` is the shell.
+- `ui/MainViewModel`: app state (`HomeUi`: trips, results, the trip in front), system warnings, "check now". `ui/editor/TripEditorViewModel`: the draft (`Draft` in the `SavedStateHandle`), place search, save and delete; `validate(draft, trips)` is pure and tested.
+- `data/TripRepository`: the only door to trips and checks. Saving or deleting a trip also reschedules the alarms, so no screen can leave them stale. Its sources: `data/local/TripStore.kt` (DataStore) and `data/remote/TomTom.kt` (HTTP, JSON DTOs, `Route.toCheck`).
+- `model/`: the types every layer shares (`Trip`, `Place`, `TripResult`, `Check`, `TrafficEvent`, `trafficLevel`). They are `@Serializable` and stored as JSON, so renaming a field breaks saved data; moving a class does not.
+- `domain/`: pure rules, no Android types. `Schedule.kt` (`nextTrigger`, `nextCheck`, `expired`, `doneAfterCheck`, `alarmPlan`, `timeConflict`, `featuredTrip`), `CheckOutcome.kt` (`checkOutcome`).
+- `work/`: background execution. `Scheduler` (exact alarms, WorkManager queue names), `AlarmReceiver`, `CheckWorker`. `notification/`: the notification and its words (`describe`, `eventTitle`), also used by the Home.
+- `MainActivity` (root package) only hosts the Compose tree and forwards the notification's trip id and `onResume`.
+- `widget/`: the Glance widget (`TripWidget`, its receiver, `CheckNowAction`) and `TripWidgetConfigActivity`. It reads the same DataStore as the Home and never calls TomTom. Its class names are part of the placed widgets: renaming or moving `TripWidgetReceiver` removes the user's widgets.
+- Tests mirror the packages (`app/src/test/.../<package>/<Name>Test.kt`); shared fixtures (`at`, `trip`, demo places) live in `TestData.kt`.
 
 ## Widget refresh
 
@@ -39,7 +42,7 @@ Glance gotcha: while a session is open, an update recomposes the content without
 1. Each trip has its own exact alarm: request code = trip id, extra `trip` = id. `AlarmReceiver` enqueues that trip's check, then `scheduleAll` sets every trip's next alarm and cancels stale ones; any other broadcast (boot, clock change, update) only reschedules.
 2. `CheckWorker` loads the trip (a deleted trip ends the work silently) and calls `checkOutcome(trip, manual, route)`: an `Outcome` with notify flag, `Check?` or `CheckError`.
 3. The worker turns it into words (`Resources.describe(tripName, check)`), saves `result_<id>` (a failed check is a result without `Check`, and the Home shows its text as the error) and notifies with id `1000 + trip id`, title prefixed by the trip name; tapping the notification opens the Home on that trip.
-4. Notify when manual, on error, or when delay ≥ the trip's threshold.
+4. A scheduled check notifies on error or when delay ≥ the trip's threshold; a manual check never notifies (the app or widget that started it shows the result).
 5. One-off trips (ticket 08): checked once, at the chosen departure time (not the arrival time: TomTom's `arriveAt` was not needed). After its scheduled check the worker deletes the trip; the notification carries the result. `scheduleAll` first drops one-off trips more than `ONE_OFF_GRACE` (1 h) past their time, e.g. after the phone was off: the grace lets the check started by the alarm still find its trip. A manual check never deletes it, and neither does a check before the trip's time (`doneAfterCheck`): `AlarmReceiver` is exported, so a forged early broadcast must not delete the trip.
 
 Logic stays language-free: `Check` and `Outcome` hold numbers and codes (`TrafficEvent.kind` is TomTom's `simpleCategory`, `CheckError`), and text is produced only from string resources at the edges. Tests assert on data, never on wording.

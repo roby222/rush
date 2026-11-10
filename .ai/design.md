@@ -1,8 +1,8 @@
 # Design
 
-Rush looks like a map app: neutral surfaces, travel time colored by traffic, one brand accent. Mode: operate (a working screen read in a hurry, minutes before leaving). Material 3 components only; the brand lives in `ui/Theme.kt`.
+Rush looks like a map app: neutral surfaces, travel time colored by traffic, one brand accent. Mode: operate (a working screen read in a hurry, minutes before leaving). Material 3 components only; the brand lives in `ui/theme/Theme.kt`.
 
-## Tokens (`ui/Theme.kt`)
+## Tokens (`ui/theme/Theme.kt`)
 
 - Surfaces: white (light) / graphite `Ink` #1C1F24 (dark); cards `surfaceContainerHighest` #F1F3F4 / #2A2E35.
 - Accent: `Amber` #FFB300 with `Ink` text. Reserved for the primary action ("Controlla ora", "Salva", "Aggiungi tragitto", via `PrimaryButton`) and the destination dot.
@@ -29,9 +29,9 @@ The Home is the notification at full size (direction contract in `.impeccable/su
 
 ## Widget (`widget/TripWidget.kt`, Glance)
 
-One trip per widget, chosen when the widget is added (skipped with a single trip) and changeable from the launcher's pencil. Same palette as the app through `ui/Palette` (Glance cannot read the Compose theme), day/night colors, 24dp corners.
+One trip per widget, chosen when the widget is added (skipped with a single trip) and changeable from the launcher's pencil. Same palette as the app through `ui/theme/Palette` (Glance cannot read the Compose theme), day/night colors, 24dp corners.
 
-- 4x2: trip name; "level · minutes (+delay)" in the traffic color; the first notable slowdown with its street; "Checked at … · Next …"; the amber "Check now" pill, which reads "Checking…" until a newer result lands.
+- 4x2: trip name; "level · minutes (+delay)" in the traffic color, the "(+delay)" left out when it is 0 (in the notification title too); the first notable slowdown with its street; "Checked at … · Next …"; the amber "Check now" pill, which reads "Checking…" until a newer result lands.
 - 2x1: name and minutes on one line, the level in words, only the check time.
 - Ground: the verdict card's tint for a fresh result, the error tint for a failed check, neutral otherwise.
 - A result older than 2 hours or from an earlier day is never shown as current: neutral ground, everything muted except the time line, which turns bold ("Last check Mon 23:32").

@@ -1,15 +1,18 @@
-package io.github.roby222.rush.ui
+package io.github.roby222.rush.ui.editor
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import io.github.roby222.rush.Place
-import io.github.roby222.rush.SearchResult
-import io.github.roby222.rush.Trip
-import io.github.roby222.rush.TripRepository
-import io.github.roby222.rush.nextCheck
-import io.github.roby222.rush.timeConflict
+import io.github.roby222.rush.data.TripRepository
+import io.github.roby222.rush.data.remote.SearchResult
+import io.github.roby222.rush.domain.nextCheck
+import io.github.roby222.rush.domain.timeConflict
+import io.github.roby222.rush.model.Place
+import io.github.roby222.rush.model.Trip
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.ZonedDateTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,9 +21,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.ZonedDateTime
 
 /** A trip as typed in the editor, before it is valid. Serializable: it lives in the SavedStateHandle. */
 data class Draft(

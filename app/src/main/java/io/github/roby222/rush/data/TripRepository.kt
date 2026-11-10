@@ -1,8 +1,18 @@
-package io.github.roby222.rush
+package io.github.roby222.rush.data
 
 import android.content.Context
 import androidx.work.WorkManager
+import io.github.roby222.rush.data.local.deleteTrip
+import io.github.roby222.rush.data.local.saveTrip
+import io.github.roby222.rush.data.local.stateFlow
+import io.github.roby222.rush.data.remote.SearchResult
+import io.github.roby222.rush.data.remote.TomTom
+import io.github.roby222.rush.model.AppState
+import io.github.roby222.rush.model.Place
+import io.github.roby222.rush.model.Trip
 import io.github.roby222.rush.widget.TripWidget
+import io.github.roby222.rush.work.Scheduler
+import io.github.roby222.rush.work.manualWork
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

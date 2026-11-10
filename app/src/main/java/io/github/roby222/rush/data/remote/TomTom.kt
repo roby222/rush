@@ -1,12 +1,16 @@
-package io.github.roby222.rush
+package io.github.roby222.rush.data.remote
 
+import io.github.roby222.rush.BuildConfig
+import io.github.roby222.rush.model.Check
+import io.github.roby222.rush.model.Place
+import io.github.roby222.rush.model.TrafficEvent
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 @Serializable data class Summary(
     val lengthInMeters: Int = 0,
@@ -90,32 +94,6 @@ object TomTom {
 
 private fun min(seconds: Int) = (seconds + 30) / 60
 
-const val CLOSURE = "ROAD_CLOSURE"
-
-/**
- * One slowdown on the route, in driving order. [kind] is TomTom's simpleCategory (JAM, ROAD_WORK, ROAD_CLOSURE, …)
- * or TRAFFIC; the UI turns it into words. [street] is null when TomTom gives no name for that stretch.
- */
-@Serializable data class TrafficEvent(val kind: String, val street: String? = null, val delayMin: Int, val speedKmh: Int? = null) {
-    val severe get() = kind == CLOSURE || delayMin >= 10 // same threshold as a red trafficLevel
-}
-
-/** The outcome of one successful check, saved for the Home screen. */
-@Serializable data class Check(
-    val destination: String,
-    val totalMin: Int,
-    val delayMin: Int,
-    val freeFlowMin: Int,
-    val km: Double,
-    val events: List<TrafficEvent> = emptyList(),
-) {
-    /** Slowdowns worth telling the user about: any closure, otherwise only those that cost time. */
-    val notable get() = events.filter { it.kind == CLOSURE || it.delayMin > 0 }
-
-    /** 0 = regolare, 1 = rallentamento, 2 = intenso o strada chiusa. */
-    val level get() = if (events.any { it.kind == CLOSURE }) 2 else trafficLevel(totalMin, delayMin)
-}
-
 fun Route.toCheck(destination: String): Check {
     val instructions = guidance?.instructions.orEmpty().sortedBy { it.pointIndex }
     val events = sections.filter { it.sectionType == "TRAFFIC" }.sortedBy { it.startPointIndex }.map { sec ->
@@ -139,17 +117,4 @@ fun Route.toCheck(destination: String): Check {
     val s = summary
     return Check(destination, min(s.travelTimeInSeconds), min(s.trafficDelayInSeconds),
         min(s.noTrafficTravelTimeInSeconds ?: s.travelTimeInSeconds), s.lengthInMeters / 1000.0, merged)
-}
-
-/**
- * 0 = regolare, 1 = rallentamento, 2 = intenso. Minutes first: the user leaves at a fixed time, so
- * +5 min matters on any trip; the ratio only makes a short trip intense sooner.
- */
-fun trafficLevel(totalMin: Int, delayMin: Int): Int {
-    val ratio = delayMin.toDouble() / maxOf(1, totalMin - delayMin)
-    return when {
-        delayMin <= 2 -> 0
-        delayMin >= 10 || ratio >= 0.4 -> 2
-        else -> 1
-    }
 }

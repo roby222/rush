@@ -5,32 +5,32 @@ import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.datastore.preferences.core.Preferences
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalSize
-import androidx.glance.currentState
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
-import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.appwidget.updateAll
 import androidx.glance.background
 import androidx.glance.color.ColorProvider
+import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -46,27 +46,27 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import io.github.roby222.rush.CLOSURE
-import io.github.roby222.rush.EXTRA_TRIP
 import io.github.roby222.rush.MainActivity
 import io.github.roby222.rush.R
-import io.github.roby222.rush.Scheduler
-import io.github.roby222.rush.Trip
-import io.github.roby222.rush.TripResult
-import io.github.roby222.rush.eventTitle
-import io.github.roby222.rush.kindLabel
-import io.github.roby222.rush.nextCheck
-import io.github.roby222.rush.result
-import io.github.roby222.rush.store
-import io.github.roby222.rush.trips
-import io.github.roby222.rush.ui.Amber
-import io.github.roby222.rush.ui.Ink
-import io.github.roby222.rush.ui.Palette
-import kotlinx.coroutines.flow.first
+import io.github.roby222.rush.data.local.result
+import io.github.roby222.rush.data.local.store
+import io.github.roby222.rush.data.local.trips
+import io.github.roby222.rush.domain.nextCheck
+import io.github.roby222.rush.model.CLOSURE
+import io.github.roby222.rush.model.Trip
+import io.github.roby222.rush.model.TripResult
+import io.github.roby222.rush.notification.eventTitle
+import io.github.roby222.rush.notification.kindLabel
+import io.github.roby222.rush.ui.theme.Amber
+import io.github.roby222.rush.ui.theme.Ink
+import io.github.roby222.rush.ui.theme.Palette
+import io.github.roby222.rush.work.EXTRA_TRIP
+import io.github.roby222.rush.work.Scheduler
 import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.flow.first
 
 /** Per-widget state: the trip it shows (0 = not chosen yet). */
 val WIDGET_TRIP = intPreferencesKey("trip")
@@ -184,7 +184,8 @@ private data class WidgetUi(
             val level = c.level
             val word = if (c.events.any { it.kind == CLOSURE }) res.kindLabel(CLOSURE) else res.getString(LEVELS[level])
             val worst = c.notable.maxByOrNull { if (it.kind == CLOSURE) Int.MAX_VALUE else it.delayMin }
-            val minutes = res.getString(R.string.widget_minutes, c.totalMin, c.delayMin)
+            val minutes = if (c.delayMin > 0) res.getString(R.string.widget_minutes, c.totalMin, c.delayMin)
+            else res.getString(R.string.widget_minutes_clear, c.totalMin)
             return WidgetUi(trip.id, trip.name, word, minutes, worst?.let { res.eventTitle(it) }, time, checkedAt,
                 level.takeUnless { stale }, failed = false, stale = stale, checking = checking)
         }

@@ -30,8 +30,8 @@ The UI is in English and Italian, following the device language.
   a notification opens its own trip.
 - **Live traffic**: travel time, delay and traffic sections (jams, road works, closures) from the TomTom
   Routing API. The time is colored by traffic level: green, orange, red.
-- **Threshold**: notify only when traffic adds at least N minutes (0 = always). "Controlla ora" (check now)
-  and errors always notify.
+- **Threshold**: notify only when traffic adds at least N minutes (0 = always). A failed check always notifies; "Check now"
+  never does, its result shows in the app or the widget.
 - **Widget**: a home-screen widget (2x1 to 4x2) with one trip's last result, colored like the Home, and a
   "Check now" button. It never calls TomTom itself, and an old result is shown faded with its time.
 - **Local search**: once one place of a trip is set, searching for the other one prefers results within 50 km of it,
@@ -72,10 +72,10 @@ PKG=io.github.roby222.rush
 adb shell dumpsys alarm | grep -A1 "walarm\*:$PKG.CHECK"
 
 # run trip 1's check now, as if its alarm fired, and reschedule every trip
-adb shell am broadcast -n $PKG/.AlarmReceiver -a $PKG.CHECK --ei trip 1
+adb shell am broadcast -n $PKG/.work.AlarmReceiver -a $PKG.CHECK --ei trip 1
 
 # reschedule only, as after a reboot (recent Android refuses BOOT_COMPLETED from the shell)
-adb shell am broadcast -n $PKG/.AlarmReceiver -a $PKG.RESCHEDULE
+adb shell am broadcast -n $PKG/.work.AlarmReceiver -a $PKG.RESCHEDULE
 
 # WorkManager job state
 adb shell dumpsys jobscheduler | grep -A6 $PKG
@@ -95,21 +95,26 @@ check, no trip cancels another, and repeated taps run a single manual check.
 
 ## Structure
 
-MVVM: Compose screens → ViewModels → `TripRepository` → pure logic (covered by unit tests).
+Packages follow Android's [app architecture guide](https://developer.android.com/topic/architecture):
+a UI layer (Compose screens and ViewModels, one package per screen), a data layer (`TripRepository` over
+local and remote sources), and a domain layer of pure rules covered by unit tests.
 
-| File | What it does |
-|------|--------------|
-| `ui/RushApp.kt` | app shell: top bar, Home → Trips → Editor, system Back |
-| `ui/HomeScreen.kt`, `ui/TripsScreen.kt`, `ui/TripEditorScreen.kt` | the three screens |
-| `ui/Components.kt`, `ui/Theme.kt` | verdict card, route list, buttons; colors and shapes |
-| `ui/MainViewModel.kt`, `ui/TripEditorViewModel.kt` | screen state and actions; the editor draft and its validation |
-| `TripRepository.kt` | the UI's only door to trips, checks and search; saving a trip reschedules its alarm |
-| `Prefs.kt` | DataStore: trips (JSON), last result per trip |
-| `Scheduler.kt` | next trigger, one alarm per trip, time clashes, featured trip, alarm receiver |
-| `CheckWorker.kt` | expedited worker: checks one trip, saves its result, notifies |
-| `TomTom.kt` | Search/Routing calls, JSON models, slowdowns by street, traffic level |
-| `MainActivity.kt` | hosts the UI and opens the trip of a tapped notification |
-| `widget/TripWidget.kt`, `widget/TripWidgetConfigActivity.kt` | home-screen widget (Glance) and its trip picker |
+| Package | What it holds |
+|---------|---------------|
+| `ui/` | `RushApp` (shell, Home → Trips → Editor, system Back), `MainViewModel` (app state, warnings, check now) |
+| `ui/home`, `ui/trips`, `ui/editor` | the three screens; the editor's ViewModel with the draft and its validation |
+| `ui/components`, `ui/theme` | verdict card, route list, buttons; colors, shapes and the palette shared with the widget |
+| `data/` | `TripRepository`: the UI's only door to trips, checks and search; saving a trip reschedules its alarm |
+| `data/local` | `TripStore.kt`: DataStore with trips (JSON) and the last result per trip |
+| `data/remote` | `TomTom.kt`: Search/Routing calls, JSON models, route → `Check` with slowdowns by street |
+| `domain/` | pure rules: next check, one alarm per trip, time clashes, featured trip (`Schedule.kt`); check outcome and when to notify (`CheckOutcome.kt`) |
+| `model/` | `Trip`, `Place`, `TripResult`, `Check`, `TrafficEvent`, traffic level |
+| `work/` | `Scheduler` (exact alarms, WorkManager queues), `AlarmReceiver`, `CheckWorker` (checks one trip, saves, notifies) |
+| `notification/` | the traffic notification and its words, shared with the Home |
+| `widget/` | home-screen widget (Glance) and its trip picker |
+
+`MainActivity` hosts the UI and opens the trip of a tapped notification. Tests mirror the packages under
+`app/src/test`; shared fixtures live in `TestData.kt`.
 
 Times follow the phone's time zone. The app is meant for sideloading: it uses `USE_EXACT_ALARM` and asks for
 the battery optimization exemption directly, both of which Google Play restricts.

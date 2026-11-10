@@ -8,10 +8,11 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import io.github.roby222.rush.AppState
-import io.github.roby222.rush.Trip
-import io.github.roby222.rush.TripRepository
-import io.github.roby222.rush.featuredTrip
+import io.github.roby222.rush.data.TripRepository
+import io.github.roby222.rush.domain.featuredTrip
+import io.github.roby222.rush.model.AppState
+import io.github.roby222.rush.model.Trip
+import java.time.ZonedDateTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,7 +20,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.ZonedDateTime
 
 /** System settings the checks depend on; each false one shows a warning on Home. */
 data class SystemStatus(val notifications: Boolean = true, val battery: Boolean = true, val exactAlarms: Boolean = true)

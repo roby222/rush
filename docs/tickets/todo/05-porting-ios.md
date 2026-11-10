@@ -7,7 +7,7 @@ Il vincolo principale è che iOS non permette all'app di svegliarsi a un'ora pre
 - **A (consigliata):** un piccolo backend (cron o worker serverless) che chiama TomTom all'ora di ogni utente e manda una push APNs solo se serve. Così l'orario è affidabile e la chiave TomTom resta sul server. In cambio partenza, arrivo e orari escono dal telefono: va aggiornato "No backend" in `.ai/product.md` e `.ai/architecture.md`.
 - **B:** nessun backend. Un App Intent "Controlla tragitto" che l'utente lancia con un'automazione "Ora del giorno" dell'app Comandi e che mostra una notifica locale. Costa zero, ma ogni utente deve configurare l'automazione a mano.
 
-Stack: SwiftUI nativo (circa 1000 righe da riscrivere). Va riportata la logica pura (`checkOutcome`, parsing TomTom, unione delle sezioni, `trafficLevel`) con gli stessi casi di `LogicTest`. Kotlin Multiplatform conviene solo se si decide di mantenere a lungo una logica condivisa.
+Stack: SwiftUI nativo (circa 1000 righe da riscrivere). Va riportata la logica pura (`checkOutcome`, parsing TomTom, unione delle sezioni, `trafficLevel`) con gli stessi casi dei test unitari (`app/src/test`). Kotlin Multiplatform conviene solo se si decide di mantenere a lungo una logica condivisa.
 
 **Blocked by:** None (can start immediately)
 
@@ -20,6 +20,6 @@ Stack: SwiftUI nativo (circa 1000 righe da riscrivere). Va riportata la logica p
 - [ ] "Controlla ora" esegue un controllo e mostra sempre l'esito
 - [ ] Controllo pianificato nei giorni e all'ora scelti; avvisa solo se ritardo ≥ soglia, in caso di chiusura o di errore (verificato su un iPhone reale, non sul simulatore)
 - [ ] Notifiche negate → avviso nell'app, come su Android
-- [ ] Logica pura coperta da test XCTest con gli stessi casi di `LogicTest`
+- [ ] Logica pura coperta da test XCTest con gli stessi casi dei test unitari (`app/src/test`)
 - [ ] Stringhe in `en` e `it`, la lingua segue quella del dispositivo
 - [ ] `.ai/` aggiornato (piattaforme, come buildare e testare iOS)

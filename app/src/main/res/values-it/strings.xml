@@ -62,6 +62,7 @@
     <string name="channel_traffic">Traffico</string>
     <string name="checking_traffic">Controllo traffico…</string>
     <string name="notif_title">%1$s: %2$d min (+%3$d traffico)</string>
+    <string name="notif_title_clear">%1$s: %2$d min</string>
     <string name="notif_summary">%1$.1f km · %2$d min senza code</string>
     <string name="notif_event">%1$s: +%2$d min</string>
     <string name="notif_speed">%1$s (%2$d km/h)</string>
@@ -92,6 +93,7 @@
     <string name="widget_checked_at">Controllato alle %1$s</string>
     <string name="widget_checked_day">Ultimo controllo %1$s</string>
     <string name="widget_minutes">%1$d min (+%2$d)</string>
+    <string name="widget_minutes_clear">%1$d min</string>
     <string name="widget_pick_trip">Scegli il tragitto da mostrare</string>
     <string name="repeat_weekly">Ogni settimana</string>
     <string name="repeat_once">Una volta</string>

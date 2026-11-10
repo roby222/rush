@@ -26,7 +26,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.roby222.rush.R
-import io.github.roby222.rush.Trip
+import io.github.roby222.rush.model.Trip
+import io.github.roby222.rush.ui.editor.TripEditorScreen
+import io.github.roby222.rush.ui.editor.TripEditorViewModel
+import io.github.roby222.rush.ui.home.HomeScreen
+import io.github.roby222.rush.ui.trips.TripsScreen
 
 private enum class Screen { HOME, TRIPS, EDITOR }
 

@@ -10,7 +10,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import io.github.roby222.rush.ui.MainViewModel
 import io.github.roby222.rush.ui.RushApp
-import io.github.roby222.rush.ui.RushTheme
+import io.github.roby222.rush.ui.theme.RushTheme
+import io.github.roby222.rush.work.EXTRA_TRIP
 
 class MainActivity : ComponentActivity() {
     private val vm: MainViewModel by viewModels()

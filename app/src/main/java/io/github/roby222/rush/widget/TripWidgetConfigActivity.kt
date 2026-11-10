@@ -26,9 +26,9 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
 import io.github.roby222.rush.R
-import io.github.roby222.rush.Trip
-import io.github.roby222.rush.trips
-import io.github.roby222.rush.ui.RushTheme
+import io.github.roby222.rush.data.local.trips
+import io.github.roby222.rush.model.Trip
+import io.github.roby222.rush.ui.theme.RushTheme
 import kotlinx.coroutines.launch
 
 /** Shown when a widget is added (or reconfigured): picks its trip; with a single trip it picks it alone. */

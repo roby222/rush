@@ -31,7 +31,7 @@ A scheduled watcher of a few recurring trips rather than a navigator: it speaks 
 ## Capabilities and Constraints
 - Weekly trips (chosen days and time) and one-off trips (a date and time, checked once, then removed); a new one-off trip starts today, from the departure of the last saved trip.
 - Scheduled exact alarm per trip; manual "check now"; threshold in minutes of delay
-  (0 = always notify).
+  (0 = always notify); a manual check shows its result in place and never notifies.
 - Places are searched once and saved as coordinates; search near the other saved place.
 - No backend; data stays on the device. Sideloaded (uses USE_EXACT_ALARM and the direct battery
   exemption request, both restricted on Google Play).
