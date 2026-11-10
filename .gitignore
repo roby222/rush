@@ -6,6 +6,4 @@ local.properties
 .DS_Store
 captures/
 .kotlin/
-.impeccable/mocks/
-.impeccable/questions/
-.impeccable/review/
+.impeccable/

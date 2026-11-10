@@ -14,7 +14,7 @@ Rush looks like a map app: neutral surfaces, travel time colored by traffic, one
 
 ## Home: the verdict
 
-The Home is the notification at full size (direction contract in `.impeccable/surfaces/`).
+The Home is the notification at full size: one verdict, the sentence naming the problem and its street, the actions under it.
 
 0. With more than one trip, a scrollable row of filter chips with the trip names; each chip's dot has the color of the trip's last result (gray: never checked, red family: failed). With one trip the row is hidden. With no trips, the verdict card says so and the primary button adds the first one.
 1. Verdict card, tinted by level: headline naming the problem and its street ("Coda in Corso Magenta", or "Tutto regolare"), beside it a filled pill with the level in sentence case (Rallentamento, Traffico intenso, Strada chiusa) shown only when level > 0, one sentence with minutes and how much earlier to leave (for an arrival trip: "Per essere a X alle 18:50, parti entro le **18:14**", or "**Parti subito**" when that time had passed at the check), "Apri in Maps" when there is a problem, update time. Headline, pill and ground crossfade together when a new check changes the state (600 ms). Error and never-checked states reuse the same card.
