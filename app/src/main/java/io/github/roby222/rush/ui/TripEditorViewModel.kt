@@ -8,6 +8,7 @@ import io.github.roby222.rush.Place
 import io.github.roby222.rush.SearchResult
 import io.github.roby222.rush.Trip
 import io.github.roby222.rush.TripRepository
+import io.github.roby222.rush.nextCheck
 import io.github.roby222.rush.timeConflict
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.ZonedDateTime
 
 /** A trip as typed in the editor, before it is valid. Serializable: it lives in the SavedStateHandle. */
 data class Draft(
@@ -28,31 +31,39 @@ data class Draft(
     val days: Set<DayOfWeek> = emptySet(),
     val time: String = "",
     val minDelay: String = "",
+    /** The day of a one-off trip; null for a weekly one. */
+    val date: LocalDate? = null,
 ) : java.io.Serializable {
     companion object {
-        fun of(t: Trip) = Draft(t.id, t.name, t.from, t.to, t.days, "%02d:%02d".format(t.hour, t.minute), t.minDelayMin.toString())
+        fun of(t: Trip) = Draft(t.id, t.name, t.from, t.to, t.days, "%02d:%02d".format(t.hour, t.minute), t.minDelayMin.toString(), t.day())
     }
 }
 
 enum class Missing { NAME, PLACES }
 
 /** The editor's verdict on a draft: the trip it describes (when the time parses) and what stops a save. */
-data class Validation(val trip: Trip?, val badTime: Boolean, val badDelay: Boolean, val conflict: Trip?, val missing: Missing?) {
-    val canSave get() = trip != null && !badDelay && conflict == null && missing == null
+data class Validation(
+    val trip: Trip?, val badTime: Boolean, val badDelay: Boolean, val conflict: Trip?, val missing: Missing?, val past: Boolean = false,
+) {
+    val canSave get() = trip != null && !badDelay && conflict == null && missing == null && !past
 }
 
-fun validate(d: Draft, trips: List<Trip>): Validation {
+/** [now] decides whether a one-off trip's date and time have already passed. */
+fun validate(d: Draft, trips: List<Trip>, now: ZonedDateTime = ZonedDateTime.now()): Validation {
     val time = Regex("""(\d{1,2}):(\d{2})""").matchEntire(d.time.trim())
         ?.destructured?.let { (h, m) -> h.toInt() to m.toInt() }
         ?.takeIf { (h, m) -> h in 0..23 && m in 0..59 }
     val delay = d.minDelay.trim().toIntOrNull()?.takeIf { it >= 0 }
-    val trip = time?.let { (h, m) -> Trip(d.id, d.name.trim(), d.from, d.to, d.days, h, m, delay ?: 0) }
+    val trip = time?.let { (h, m) ->
+        Trip(d.id, d.name.trim(), d.from, d.to, if (d.date == null) d.days else emptySet(), h, m, delay ?: 0, d.date?.toString())
+    }
     val missing = when {
         d.name.isBlank() -> Missing.NAME
         d.from == null || d.to == null -> Missing.PLACES
         else -> null
     }
-    return Validation(trip, time == null, delay == null, trip?.let { timeConflict(it, trips) }, missing)
+    val past = trip?.date != null && nextCheck(trip, now) == null
+    return Validation(trip, time == null, delay == null, trip?.let { timeConflict(it, trips) }, missing, past)
 }
 
 /** Which end of the trip a place search is for. */
@@ -72,7 +83,7 @@ class TripEditorViewModel(app: Application, private val handle: SavedStateHandle
     private val trips = repo.state.map { it.trips }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val draft: StateFlow<Draft> = handle.getStateFlow(DRAFT, Draft())
-    val validation: StateFlow<Validation> = combine(draft, trips, ::validate)
+    val validation: StateFlow<Validation> = combine(draft, trips) { d, t -> validate(d, t) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, validate(draft.value, emptyList()))
 
     private val _search = MutableStateFlow<Map<End, SearchState>>(emptyMap())
@@ -85,6 +96,15 @@ class TripEditorViewModel(app: Application, private val handle: SavedStateHandle
     }
 
     fun update(change: (Draft) -> Draft) { handle[DRAFT] = change(draft.value) }
+
+    /**
+     * Switches between weekly and one-off. A one-off trip starts today, from the departure of the
+     * last saved trip when it has none yet (an appointment usually starts where the other trips do).
+     */
+    fun setOnce(once: Boolean) = update {
+        if (!once) it.copy(date = null)
+        else it.copy(date = it.date ?: LocalDate.now(), from = it.from ?: trips.value.maxByOrNull { t -> t.id }?.from)
+    }
 
     /** Searches near the other end of the trip, so a bare street name finds the one in the same city. */
     fun search(end: End, query: String) {

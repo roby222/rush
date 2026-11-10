@@ -9,7 +9,7 @@ MVVM, as Google recommends for Android: screens → ViewModel → repository →
 - `ui/` screens (`RushApp` shell, `HomeScreen`, `TripsScreen`, `TripEditorScreen`, shared `Components`, `Theme`) read state from a ViewModel and call its actions; they never touch DataStore or WorkManager.
 - `ui/MainViewModel`: app state (`HomeUi`: trips, results, the trip in front), system warnings, "check now". `ui/TripEditorViewModel`: the draft (`Draft` in the `SavedStateHandle`), place search, save and delete; `validate(draft, trips)` is pure and tested.
 - `TripRepository`: the only door to trips and checks. Saving or deleting a trip also reschedules the alarms, so no screen can leave them stale.
-- Pure logic, covered by `LogicTest`: `TomTom.kt` (route → `Check`, levels), `Scheduler.kt` (`nextTrigger`, `alarmPlan`, `timeConflict`, `featuredTrip`), `Prefs.kt` (`putTrip`/`removeTrip` on `MutablePreferences`), `checkOutcome`.
+- Pure logic, covered by `LogicTest`: `TomTom.kt` (route → `Check`, levels), `Scheduler.kt` (`nextTrigger`, `nextCheck`, `expired`, `alarmPlan`, `timeConflict`, `featuredTrip`), `Prefs.kt` (`putTrip`/`removeTrip` on `MutablePreferences`), `checkOutcome`.
 - `MainActivity` only hosts the Compose tree and forwards the notification's trip id and `onResume`.
 - `widget/`: the Glance widget (`TripWidget`, its receiver, `CheckNowAction`) and `TripWidgetConfigActivity`. It reads the same DataStore as the Home and never calls TomTom.
 
@@ -31,6 +31,7 @@ Glance gotcha: while a session is open, an update recomposes the content without
 - `next_trip_id`: ids start at 1 and are never reused, so an old alarm or result cannot land on a new trip.
 - `alarm_ids`: trip ids with an alarm set, so alarms of deleted trips get cancelled.
 - No migration from v0.2.0 (one user, who re-entered the trip): its keys are dropped on the first save, and its alarm (request code 0) is cancelled by `scheduleAll`.
+- A one-off trip is a `Trip` with `date` (ISO day) set; its `days` are empty and ignored.
 - Unreadable JSON decodes to nothing (no trips / no result); keep new fields optional or defaulted.
 
 ## Check flow
@@ -39,6 +40,7 @@ Glance gotcha: while a session is open, an update recomposes the content without
 2. `CheckWorker` loads the trip (a deleted trip ends the work silently) and calls `checkOutcome(trip, manual, route)`: an `Outcome` with notify flag, `Check?` or `CheckError`.
 3. The worker turns it into words (`Resources.describe(tripName, check)`), saves `result_<id>` (a failed check is a result without `Check`, and the Home shows its text as the error) and notifies with id `1000 + trip id`, title prefixed by the trip name; tapping the notification opens the Home on that trip.
 4. Notify when manual, on error, or when delay ≥ the trip's threshold.
+5. One-off trips (ticket 08): checked once, at the chosen departure time (not the arrival time: TomTom's `arriveAt` was not needed). After its scheduled check the worker deletes the trip; the notification carries the result. `scheduleAll` first drops one-off trips more than `ONE_OFF_GRACE` (1 h) past their time, e.g. after the phone was off: the grace lets the check started by the alarm still find its trip. A manual check never deletes it.
 
 Logic stays language-free: `Check` and `Outcome` hold numbers and codes (`TrafficEvent.kind` is TomTom's `simpleCategory`, `CheckError`), and text is produced only from string resources at the edges. Tests assert on data, never on wording.
 
@@ -46,7 +48,7 @@ Logic stays language-free: `Check` and `Outcome` hold numbers and codes (`Traffi
 
 - `CancellationException` is rethrown in `checkOutcome`: a check stopped by the system saves nothing and notifies nothing. The HTTP call runs in `runInterruptible` so cancellation aborts it.
 - Work queues per trip: `check-<id>` (scheduled, REPLACE) and `check-manual-<id>` (KEEP). A manual check never cancels a scheduled one, no trip cancels another, repeated taps run one check.
-- Two trips never run in the same minute: the editor refuses a trip with the same hour:minute as another on a shared day (`timeConflict`). The same time on different days is allowed.
+- Two trips never run in the same minute: the editor refuses a trip with the same hour:minute as another on a shared day (`timeConflict`). The same time on different days is allowed; a one-off trip shares a day with a weekly one when its date falls on one of the weekly days.
 - The Home puts in front the latest trip with a problem (slowdown or failed check) in the last 3 hours (`FEATURED_PROBLEM_WINDOW`), else the trip checked next; a chip or a notification overrides it.
 
 ## TomTom

@@ -40,6 +40,8 @@ class CheckWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
         ctx.saveResult(trip.id, TripResult(System.currentTimeMillis(), title, text, o.check))
         // One notification per trip, so two trips never overwrite each other's.
         if (o.notify) notify(ctx, 1000 + trip.id, notification(ctx, title, text, trip.id))
+        // A one-off trip is done after its scheduled check; the notification carries the result.
+        if (trip.date != null && !manual) ctx.deleteTrip(trip.id)
         TripWidget.refresh(ctx) // widgets show the saved result, so redraw them now
         return Result.success()
     }

@@ -23,9 +23,9 @@ The Home is the notification at full size (direction contract in `.impeccable/su
 
 ## Trips and editor
 
-- The gear opens "Tragitti": one card per trip (name, days · time, departure → destination), tap to edit, primary "Aggiungi tragitto" at the bottom.
-- The editor: name, departure, destination (search → result → Conferma), days, time, minimum delay, primary "Salva", then "Elimina tragitto" as an error-colored text button behind a Material confirmation dialog. A new trip takes its name from the destination when the name is still empty.
-- Errors sit under their field: a time clash names the other trip ("C'è già «Palestra» alle 17:20 in uno di questi giorni") and keeps Salva disabled; a missing name or place is said in one line under Salva.
+- The gear opens "Tragitti": one card per trip (name, days · time or "Tue 10 Nov · 15:00" for a one-off trip, departure → destination), tap to edit, primary "Aggiungi tragitto" at the bottom.
+- The editor: name, departure, destination (search → result → Conferma), a segmented "Ogni settimana / Una volta", then the day chips or a date button opening the Material date picker (past days disabled), time, minimum delay, primary "Salva", then "Elimina tragitto" as an error-colored text button behind a Material confirmation dialog. A new trip takes its name from the destination when the name is still empty.
+- Errors sit under their field: a time clash names the other trip ("C'è già «Palestra» alle 17:20 in uno di questi giorni") and keeps Salva disabled; a one-off time already passed says so under the time field; a missing name or place is said in one line under Salva.
 
 ## Widget (`widget/TripWidget.kt`, Glance)
 

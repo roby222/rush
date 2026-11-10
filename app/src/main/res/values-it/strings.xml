@@ -93,4 +93,10 @@
     <string name="widget_checked_day">Ultimo controllo %1$s</string>
     <string name="widget_minutes">%1$d min (+%2$d)</string>
     <string name="widget_pick_trip">Scegli il tragitto da mostrare</string>
+    <string name="repeat_weekly">Ogni settimana</string>
+    <string name="repeat_once">Una volta</string>
+    <string name="date_label">Il giorno %1$s</string>
+    <string name="ok">OK</string>
+    <string name="time_past">Quest\'ora è già passata</string>
+    <string name="time_conflict_once">C\'è già «%1$s» alle %2$s quel giorno</string>
 </resources>

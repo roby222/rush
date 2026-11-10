@@ -205,6 +205,40 @@ class LogicTest {
         assertFalse(clash.canSave)
     }
 
+    @Test fun oneOffTripIsCheckedOnceThenExpires() {
+        // 2026-11-10 is a Tuesday
+        val t = trip(5, days = emptySet(), hour = 15, minute = 0).copy(date = "2026-11-10")
+        assertEquals(at(2026, 11, 10, 15, 0), nextCheck(t, at(2026, 11, 10, 9, 0)))
+        assertNull(nextCheck(t, at(2026, 11, 10, 15, 0)))                 // time reached: no further check
+        assertEquals(mapOf(5 to at(2026, 11, 10, 15, 0)), alarmPlan(listOf(t), at(2026, 11, 10, 9, 0)))
+        assertFalse(expired(t, at(2026, 11, 10, 15, 30)))                 // its check may still be running
+        assertTrue(expired(t, at(2026, 11, 10, 16, 1)))                   // e.g. the phone was off
+        assertFalse(expired(trip(1), at(2026, 11, 10, 16, 1)))            // weekly trips never expire
+        val json = mutablePreferencesOf().apply { putTrip(t.copy(id = 0)) }
+        assertEquals("2026-11-10", json.trips().single().date)
+    }
+
+    @Test fun oneOffTripConflicts() {
+        val gymMwf = trip(1)                                               // Mon/Wed/Fri 17:20
+        val wed = trip(0, days = emptySet()).copy(date = "2026-11-11")    // a Wednesday, 17:20
+        val tue = wed.copy(date = "2026-11-10")
+        assertEquals(gymMwf, timeConflict(wed, listOf(gymMwf)))
+        assertNull(timeConflict(tue, listOf(gymMwf)))
+        assertEquals(wed.copy(id = 2), timeConflict(gymMwf, listOf(wed.copy(id = 2))))
+        assertNull(timeConflict(tue.copy(id = 3), listOf(tue.copy(id = 4, date = "2026-11-17"))))
+    }
+
+    @Test fun oneOffValidation() {
+        val now = at(2026, 11, 10, 12, 0)
+        val d = Draft(0, "Dentista", home, gym, setOf(MONDAY), "15:00", "0", java.time.LocalDate.of(2026, 11, 10))
+        val v = validate(d, emptyList(), now)
+        assertTrue(v.canSave)
+        assertEquals(Trip(0, "Dentista", home, gym, emptySet(), 15, 0, 0, "2026-11-10"), v.trip)
+        val past = validate(d.copy(time = "11:59"), emptyList(), now)
+        assertTrue(past.past)
+        assertFalse(past.canSave)
+    }
+
     @Test fun widgetResultTurnsStale() {
         val now = at(2026, 11, 10, 18, 0)
         fun ago(h: Long, m: Long = 0) = now.minusHours(h).minusMinutes(m).toInstant().toEpochMilli()

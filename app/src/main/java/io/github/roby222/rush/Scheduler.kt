@@ -41,13 +41,38 @@ fun nextTrigger(now: ZonedDateTime, days: Set<DayOfWeek>, hour: Int, minute: Int
         .map { it.atTime(hour, minute).atZone(now.zone) }
         .firstOrNull { it.isAfter(now) }
 
-/** Next alarm time per trip id; trips without days have none. */
+/** A one-off trip stays this long after its time, so the check its alarm started can still find it. */
+val ONE_OFF_GRACE: Duration = Duration.ofHours(1)
+
+/** When a one-off trip is checked, in [now]'s zone; null for a weekly trip. */
+fun oneOffAt(t: Trip, now: ZonedDateTime): ZonedDateTime? = t.day()?.atTime(t.hour, t.minute)?.atZone(now.zone)
+
+/** The next check of [t] after [now]: the next weekly occurrence, or the one-off time while still ahead. */
+fun nextCheck(t: Trip, now: ZonedDateTime): ZonedDateTime? =
+    if (t.date == null) nextTrigger(now, t.days, t.hour, t.minute) else oneOffAt(t, now)?.takeIf { it.isAfter(now) }
+
+/** A one-off trip whose time passed more than [ONE_OFF_GRACE] ago, e.g. with the phone off: it is removed. */
+fun expired(t: Trip, now: ZonedDateTime): Boolean = oneOffAt(t, now)?.isBefore(now.minus(ONE_OFF_GRACE)) == true
+
+/** Next alarm time per trip id; weekly trips without days and past one-off trips have none. */
 fun alarmPlan(trips: List<Trip>, now: ZonedDateTime): Map<Int, ZonedDateTime> =
-    trips.mapNotNull { t -> nextTrigger(now, t.days, t.hour, t.minute)?.let { t.id to it } }.toMap()
+    trips.mapNotNull { t -> nextCheck(t, now)?.let { t.id to it } }.toMap()
+
+/** Whether two trips can run on the same calendar day. */
+private fun sharesADay(a: Trip, b: Trip): Boolean {
+    val da = a.day()
+    val db = b.day()
+    return when {
+        da != null && db != null -> da == db
+        da != null -> da.dayOfWeek in b.days
+        db != null -> db.dayOfWeek in a.days
+        else -> a.days.any { it in b.days }
+    }
+}
 
 /** Another trip checked at the same hour:minute on a shared day: two checks in one minute make no sense. */
 fun timeConflict(draft: Trip, trips: List<Trip>): Trip? = trips.firstOrNull {
-    it.id != draft.id && it.hour == draft.hour && it.minute == draft.minute && it.days.any { d -> d in draft.days }
+    it.id != draft.id && it.hour == draft.hour && it.minute == draft.minute && sharesADay(it, draft)
 }
 
 /**
@@ -71,11 +96,13 @@ object Scheduler {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
-    /** Sets one exact alarm per trip and cancels the alarms of trips that no longer exist. */
+    /** Drops expired one-off trips, sets one exact alarm per trip and cancels the alarms of trips that no longer exist. */
     suspend fun scheduleAll(ctx: Context) {
         val am = ctx.getSystemService(AlarmManager::class.java)
+        val now = ZonedDateTime.now()
+        ctx.pruneExpired(now)
         val prefs = ctx.store.data.first()
-        val plan = alarmPlan(prefs.trips(), ZonedDateTime.now())
+        val plan = alarmPlan(prefs.trips(), now)
         // 0 is the single alarm of v0.2.0.
         val stale = prefs[Keys.alarmIds].orEmpty().mapNotNull { it.toIntOrNull() }.toSet() + 0 - plan.keys
         stale.forEach { am.cancel(alarm(ctx, it)) }

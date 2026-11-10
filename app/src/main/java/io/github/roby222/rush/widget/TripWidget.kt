@@ -55,7 +55,7 @@ import io.github.roby222.rush.Trip
 import io.github.roby222.rush.TripResult
 import io.github.roby222.rush.eventTitle
 import io.github.roby222.rush.kindLabel
-import io.github.roby222.rush.nextTrigger
+import io.github.roby222.rush.nextCheck
 import io.github.roby222.rush.result
 import io.github.roby222.rush.store
 import io.github.roby222.rush.trips
@@ -168,7 +168,7 @@ private data class WidgetUi(
                 val text = res.getString(if (removed) R.string.widget_trip_removed else R.string.widget_no_trip)
                 return WidgetUi(0, "Rush", text, null, null, null, null, null, failed = false, stale = false, checking = false)
             }
-            val nextAt = nextTrigger(now, trip.days, trip.hour, trip.minute)?.format(DateTimeFormatter.ofPattern("EEE HH:mm"))
+            val nextAt = nextCheck(trip, now)?.format(DateTimeFormatter.ofPattern("EEE HH:mm"))
             val next = nextAt?.let { res.getString(R.string.widget_next, it) }
             if (r == null) {
                 return WidgetUi(trip.id, trip.name, res.getString(R.string.no_check_yet), null, null, next, next,

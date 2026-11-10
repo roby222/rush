@@ -80,11 +80,14 @@ fun HomeScreen(vm: MainViewModel, home: HomeUi, onAdd: () -> Unit) {
         PrimaryButton(stringResource(if (checking) R.string.checking else R.string.check_now), enabled = !checking) {
             vm.checkNow(trip.id)
         }
-        val next = nextTrigger(ZonedDateTime.now(), trip.days, trip.hour, trip.minute)
-        Text(stringResource(R.string.next_check,
-            next?.format(DateTimeFormatter.ofPattern("EEEE d MMMM, HH:mm")) ?: stringResource(R.string.no_days)),
-            style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp))
+        val next = nextCheck(trip, ZonedDateTime.now())
+        // A one-off trip past its time has no next check and is about to be removed: say nothing.
+        if (next != null || trip.date == null) {
+            Text(stringResource(R.string.next_check,
+                next?.format(DateTimeFormatter.ofPattern("EEEE d MMMM, HH:mm")) ?: stringResource(R.string.no_days)),
+                style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp))
+        }
     }
 
     val pkg = Uri.parse("package:${ctx.packageName}")

@@ -10,12 +10,12 @@ Punti da decidere nel ticket:
 
 **Blocked by:** 07 (Più tragitti settimanali)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Creare un tragitto una tantum con data (oggi come predefinita) e ora; una data o un'ora già passate non si possono salvare
-- [ ] Il controllo parte alla data e all'ora scelte e segue soglia e regole di notifica dei tragitti settimanali (test su `nextTrigger` o equivalente)
-- [ ] Dopo il controllo, o se la data è passata (anche dopo un riavvio), il tragitto viene rimosso e il suo allarme cancellato (test)
-- [ ] Nella lista e nella Home si distingue da un tragitto settimanale (data al posto dei giorni)
-- [ ] Modifica ed eliminazione prima della data
-- [ ] Stringhe nuove in `values` e `values-it`
-- [ ] Scelte (ora di partenza o di arrivo, partenza predefinita) registrate in `.ai/architecture.md`; `.ai/product.md` aggiornato
+- [x] Creare un tragitto una tantum con data (oggi come predefinita) e ora; una data o un'ora già passate non si possono salvare
+- [x] Il controllo parte alla data e all'ora scelte e segue soglia e regole di notifica dei tragitti settimanali (test su `nextTrigger` o equivalente)
+- [x] Dopo il controllo, o se la data è passata (anche dopo un riavvio), il tragitto viene rimosso e il suo allarme cancellato (test)
+- [x] Nella lista e nella Home si distingue da un tragitto settimanale (data al posto dei giorni)
+- [x] Modifica ed eliminazione prima della data
+- [x] Stringhe nuove in `values` e `values-it`
+- [x] Scelte (ora di partenza o di arrivo, partenza predefinita) registrate in `.ai/architecture.md`; `.ai/product.md` aggiornato

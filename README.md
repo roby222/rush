@@ -25,6 +25,7 @@ The UI is in English and Italian, following the device language.
 
 - **Several trips**: each with its own name, places, days, time and threshold, and its own exact alarm;
   alarms survive reboots, time zone and clock changes. Two trips cannot share a minute on the same day.
+- **One-off trips**: an appointment on a given date and time, checked once and then removed on its own.
 - **Home**: the trip with a recent problem (or the next one to be checked) in front, the others one chip away;
   a notification opens its own trip.
 - **Live traffic**: travel time, delay and traffic sections (jams, road works, closures) from the TomTom

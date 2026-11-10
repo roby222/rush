@@ -45,6 +45,9 @@ import io.github.roby222.rush.*
 import io.github.roby222.rush.R
 import java.text.DateFormat
 import java.time.DayOfWeek
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -70,22 +73,37 @@ fun TripEditorScreen(vm: TripEditorViewModel, onSaved: (Int) -> Unit, onDeleted:
         onSearch = { vm.search(End.TO, it) }, onClear = { vm.clearSearch(End.TO) }, onConfirm = { vm.confirm(End.TO) })
 
     Section(stringResource(R.string.section_when))
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        DayOfWeek.entries.forEach { day ->
-            FilterChip(
-                selected = day in d.days,
-                onClick = { vm.update { it.copy(days = if (day in it.days) it.days - day else it.days + day) } },
-                label = { Text(day.getDisplayName(TextStyle.SHORT, LocalConfiguration.current.locales[0])) },
-            )
+    val once = d.date != null
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        listOf(false, true).forEachIndexed { i, option ->
+            SegmentedButton(selected = once == option, onClick = { vm.setOnce(option) }, shape = SegmentedButtonDefaults.itemShape(i, 2)) {
+                Text(stringResource(if (option) R.string.repeat_once else R.string.repeat_weekly))
+            }
+        }
+    }
+    val date = d.date
+    if (date != null) {
+        DateField(date) { picked -> vm.update { it.copy(date = picked) } }
+    } else {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DayOfWeek.entries.forEach { day ->
+                FilterChip(
+                    selected = day in d.days,
+                    onClick = { vm.update { it.copy(days = if (day in it.days) it.days - day else it.days + day) } },
+                    label = { Text(day.getDisplayName(TextStyle.SHORT, LocalConfiguration.current.locales[0])) },
+                )
+            }
         }
     }
     val conflict = v.conflict
     OutlinedTextField(d.time, { time -> vm.update { it.copy(time = time) } }, label = { Text(stringResource(R.string.time)) },
-        isError = v.badTime || conflict != null, singleLine = true, modifier = Modifier.fillMaxWidth(),
+        isError = v.badTime || conflict != null || v.past, singleLine = true, modifier = Modifier.fillMaxWidth(),
         supportingText = {
             Text(when {
                 v.badTime -> stringResource(R.string.time_error)
-                conflict != null -> stringResource(R.string.time_conflict, conflict.name, "%02d:%02d".format(conflict.hour, conflict.minute))
+                conflict != null -> stringResource(if (once) R.string.time_conflict_once else R.string.time_conflict,
+                    conflict.name, "%02d:%02d".format(conflict.hour, conflict.minute))
+                v.past -> stringResource(R.string.time_past)
                 else -> stringResource(R.string.time_help)
             })
         })
@@ -119,6 +137,36 @@ fun TripEditorScreen(vm: TripEditorViewModel, onSaved: (Int) -> Unit, onDeleted:
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
+}
+
+/** The day of a one-off trip, picked in a Material date picker that starts today. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateField(date: LocalDate, onPick: (LocalDate) -> Unit) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val locale = LocalConfiguration.current.locales[0]
+    OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.date_label, date.format(DateTimeFormatter.ofPattern("EEEE d MMMM", locale))))
+    }
+    if (!open) return
+    // The picker speaks UTC midnights.
+    val today = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    val state = rememberDatePickerState(
+        initialSelectedDateMillis = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis >= today
+        },
+    )
+    DatePickerDialog(
+        onDismissRequest = { open = false },
+        confirmButton = {
+            TextButton(onClick = {
+                state.selectedDateMillis?.let { onPick(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
+                open = false
+            }) { Text(stringResource(R.string.ok)) }
+        },
+        dismissButton = { TextButton(onClick = { open = false }) { Text(stringResource(R.string.cancel)) } },
+    ) { DatePicker(state) }
 }
 
 /** One end of the trip: the saved place, a search field, the result and Confirm. The search runs in the ViewModel. */

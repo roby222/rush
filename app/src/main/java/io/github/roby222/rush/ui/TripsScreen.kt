@@ -63,7 +63,7 @@ fun TripsScreen(trips: List<Trip>, onEdit: (Int) -> Unit) {
         Card(onClick = { onEdit(t.id) }, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(t.name, style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.trip_schedule, daysLabel(t.days, locale), "%02d:%02d".format(t.hour, t.minute)),
+                Text(stringResource(R.string.trip_schedule, whenLabel(t, locale), "%02d:%02d".format(t.hour, t.minute)),
                     style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
                 Text("${t.from?.name?.substringBefore(",").orEmpty()} → ${t.to?.name?.substringBefore(",").orEmpty()}",
                     style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
@@ -73,5 +73,6 @@ fun TripsScreen(trips: List<Trip>, onEdit: (Int) -> Unit) {
     PrimaryButton(stringResource(R.string.add_trip)) { onEdit(0) }
 }
 
-private fun daysLabel(days: Set<DayOfWeek>, locale: Locale) =
-    DayOfWeek.entries.filter { it in days }.joinToString(", ") { it.getDisplayName(TextStyle.SHORT, locale) }
+/** "Mon, Wed, Fri" for a weekly trip, "Tue 10 Nov" for a one-off one. */
+private fun whenLabel(t: Trip, locale: Locale) = t.day()?.format(DateTimeFormatter.ofPattern("EEE d MMM", locale))
+    ?: DayOfWeek.entries.filter { it in t.days }.joinToString(", ") { it.getDisplayName(TextStyle.SHORT, locale) }

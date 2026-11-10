@@ -29,7 +29,8 @@ A scheduled watcher of a few recurring trips rather than a navigator: it speaks 
   TomTom Search for places. Free tier, about 2,500 requests/day.
 
 ## Capabilities and Constraints
-- Scheduled exact alarm on chosen days and time; manual "check now"; threshold in minutes of delay
+- Weekly trips (chosen days and time) and one-off trips (a date and time, checked once, then removed); a new one-off trip starts today, from the departure of the last saved trip.
+- Scheduled exact alarm per trip; manual "check now"; threshold in minutes of delay
   (0 = always notify).
 - Places are searched once and saved as coordinates; search near the other saved place.
 - No backend; data stays on the device. Sideloaded (uses USE_EXACT_ALARM and the direct battery
