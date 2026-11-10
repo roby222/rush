@@ -25,6 +25,8 @@ class TomTomTest {
 
     @Test fun searchUrl() {
         val global = TomTom.searchUrl("Piazza Università 1", null)
+        assertEquals("true", global.queryParameter("typeahead"))     // suggestions while typing
+        assertEquals(SUGGESTIONS.toString(), global.queryParameter("limit"))
         assertTrue(global.encodedPath.endsWith("/search/2/search/Piazza%20Universit%C3%A0%201.json"))
         assertNull(global.queryParameter("lat"))
         assertNull(global.queryParameter("lon"))
@@ -60,5 +62,12 @@ class TomTomTest {
             "guidance":{"instructions":[{"pointIndex":40,"street":"Long Island Expy E"}]}}]}
         """).toCheck("JFK")
         assertEquals(listOf(TrafficEvent("JAM", "Long Island Expy E", 5, 20)), c.events)
+    }
+
+    @Test fun placeLabelNamesThePlaceOnce() {
+        val square = SearchResult(Position(45.46, 9.19), Address("Piazza del Duomo, 20122 Milano"), Poi("Piazza del Duomo"))
+        assertEquals("Piazza del Duomo, 20122 Milano", square.label)
+        val gym = SearchResult(Position(45.46, 9.18), Address("Via Torino 51, 20123 Milano"), Poi("Palestra"))
+        assertEquals("Palestra, Via Torino 51, 20123 Milano", gym.label)
     }
 }

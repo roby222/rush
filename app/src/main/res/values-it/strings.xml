@@ -43,20 +43,15 @@
     <string name="section_route">Percorso</string>
     <string name="section_when">Quando</string>
     <string name="section_alerts">Avvisi</string>
-    <string name="time">Ora</string>
-    <string name="time_help">Formato HH:MM</string>
+    <string name="time">Ora di partenza</string>
+    <string name="time_help">HH:MM: Rush controlla il traffico a quest\'ora</string>
     <string name="time_error">Usa il formato HH:MM, es. 17:20</string>
     <string name="min_delay">Ritardo minimo (minuti)</string>
     <string name="min_delay_help">Notifica solo se il traffico aggiunge almeno questi minuti. 0 = sempre.</string>
     <string name="min_delay_error">Inserisci un numero intero, 0 o più</string>
     <string name="save">Salva</string>
-    <string name="not_set">Non impostato</string>
     <string name="search_place">Cerca indirizzo o luogo</string>
-    <string name="change_place">Cambia: cerca indirizzo o luogo</string>
-    <string name="search">Cerca</string>
-    <string name="confirm">Conferma</string>
     <string name="searching">Cerco…</string>
-    <string name="found">Trovato: %1$s</string>
     <string name="no_results">Nessun risultato</string>
     <string name="search_error">Errore: %1$s</string>
     <string name="channel_traffic">Traffico</string>
@@ -101,9 +96,9 @@
     <string name="ok">OK</string>
     <string name="time_past">Quest\'ora è già passata</string>
     <string name="time_conflict_once">C\'è già «%1$s» alle %2$s quel giorno</string>
-    <string name="mode_check">Controlla alle</string>
-    <string name="mode_arrive">Arriva entro le</string>
-    <string name="arrival_time">Ora di arrivo</string>
+    <string name="mode_check">Partenza</string>
+    <string name="mode_arrive">Arrivo</string>
+    <string name="arrival_time">Arriva entro le</string>
     <string name="arrive_help">Rush controlla 30 e 10 minuti prima della tua partenza abituale e ti dice quando partire.</string>
     <string name="arrive_at">arrivo %1$s</string>
     <string name="save_failed">Impossibile stimare il tragitto (%1$s). Controlla la connessione e riprova.</string>
@@ -116,4 +111,21 @@
     <string name="verdict_leave_now">&lt;b&gt;Parti subito&lt;/b&gt;: per %1$s servono &lt;b&gt;%2$d min&lt;/b&gt;, arrivi alle %3$s.</string>
     <string name="widget_leave_by">parti alle %1$s</string>
     <string name="widget_leave_now">parti subito</string>
+    <string name="wizard_step">Passo %1$d di %2$d</string>
+    <string name="wizard_where">Da dove a dove?</string>
+    <string name="wizard_when">Quando?</string>
+    <string name="wizard_alerts">Quando ti avviso?</string>
+    <string name="next">Avanti</string>
+    <string name="save_trip">Salva tragitto</string>
+    <string name="name_from_destination">Preso dall\'arrivo: cambialo pure.</string>
+    <string name="change">Cambia</string>
+    <string name="distance_km">%1$.1f km</string>
+    <string name="time_is">L\'ora è quella di…</string>
+    <string name="arrive_help_usual">Di solito ci metti %1$d min. Rush controlla alle %2$s e alle %3$s e ti dice quando partire.</string>
+    <string name="alert_always">Sempre</string>
+    <string name="alert_always_hint">Ti dico ogni volta com\'è il traffico</string>
+    <string name="alert_min">Con almeno %1$d min di ritardo</string>
+    <string name="alert_other">Altro…</string>
+    <string name="summary">Riepilogo</string>
+    <string name="summary_checks">Controlli alle %1$s e alle %2$s</string>
 </resources>

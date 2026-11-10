@@ -43,4 +43,19 @@ class TripEditorValidationTest {
         assertTrue(arrival.canSave)
         assertTrue(arrival.trip!!.arriveBy)
     }
+
+    @Test fun suggestionsStartFromThreeLetters() {
+        assertFalse(shouldSuggest("vi"))
+        assertFalse(shouldSuggest("  vi "))
+        assertTrue(shouldSuggest("via"))
+    }
+
+    @Test fun wizardStepsNeedTheirOwnFields() {
+        val start = validate(Draft(time = "17:20", minDelay = "0"), emptyList())
+        assertFalse(start.whereDone)
+        assertTrue(start.whenDone)                                       // the "when" step has its defaults
+        val where = validate(Draft(name = "Palestra", from = home, to = gym, time = "17:20", minDelay = "0"), emptyList())
+        assertTrue(where.whereDone)
+        assertFalse(validate(Draft(name = "Palestra", from = home, to = gym, time = "7", minDelay = "0"), emptyList()).whenDone)
+    }
 }

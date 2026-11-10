@@ -43,20 +43,15 @@
     <string name="section_route">Route</string>
     <string name="section_when">When</string>
     <string name="section_alerts">Alerts</string>
-    <string name="time">Time</string>
-    <string name="time_help">Format HH:MM</string>
+    <string name="time">Departure time</string>
+    <string name="time_help">HH:MM: Rush checks the traffic at this time</string>
     <string name="time_error">Use the HH:MM format, e.g. 17:20</string>
     <string name="min_delay">Minimum delay (minutes)</string>
     <string name="min_delay_help">Notify only when traffic adds at least this many minutes. 0 = always.</string>
     <string name="min_delay_error">Enter a whole number, 0 or more</string>
     <string name="save">Save</string>
-    <string name="not_set">Not set</string>
     <string name="search_place">Search address or place</string>
-    <string name="change_place">Change: search address or place</string>
-    <string name="search">Search</string>
-    <string name="confirm">Confirm</string>
     <string name="searching">Searching…</string>
-    <string name="found">Found: %1$s</string>
     <string name="no_results">No results</string>
     <string name="search_error">Error: %1$s</string>
     <string name="channel_traffic">Traffic</string>
@@ -101,9 +96,9 @@
     <string name="ok">OK</string>
     <string name="time_past">This time has already passed</string>
     <string name="time_conflict_once">%1$s already runs at %2$s that day</string>
-    <string name="mode_check">Check at</string>
-    <string name="mode_arrive">Arrive by</string>
-    <string name="arrival_time">Arrival time</string>
+    <string name="mode_check">Departure</string>
+    <string name="mode_arrive">Arrival</string>
+    <string name="arrival_time">Arrive by</string>
     <string name="arrive_help">Rush checks 30 and 10 minutes before you usually leave, and tells you when to go.</string>
     <string name="arrive_at">arrive %1$s</string>
     <string name="save_failed">Could not estimate the trip (%1$s). Check the connection and try again.</string>
@@ -116,4 +111,21 @@
     <string name="verdict_leave_now">&lt;b&gt;Leave now&lt;/b&gt;: to %1$s it takes &lt;b&gt;%2$d min&lt;/b&gt;, you get there at %3$s.</string>
     <string name="widget_leave_by">leave by %1$s</string>
     <string name="widget_leave_now">leave now</string>
+    <string name="wizard_step">Step %1$d of %2$d</string>
+    <string name="wizard_where">Where from, where to?</string>
+    <string name="wizard_when">When?</string>
+    <string name="wizard_alerts">When should I tell you?</string>
+    <string name="next">Next</string>
+    <string name="save_trip">Save trip</string>
+    <string name="name_from_destination">Taken from the destination: change it if you like.</string>
+    <string name="change">Change</string>
+    <string name="distance_km">%1$.1f km</string>
+    <string name="time_is">The time is your…</string>
+    <string name="arrive_help_usual">Usually %1$d min. Rush checks at %2$s and %3$s and tells you when to leave.</string>
+    <string name="alert_always">Always</string>
+    <string name="alert_always_hint">Tell me every time how the traffic is</string>
+    <string name="alert_min">With at least %1$d min of delay</string>
+    <string name="alert_other">Other…</string>
+    <string name="summary">Summary</string>
+    <string name="summary_checks">Checks at %1$s and %2$s</string>
 </resources>

@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.roby222.rush.R
 import io.github.roby222.rush.model.Trip
+import io.github.roby222.rush.ui.editor.NewTripScreen
 import io.github.roby222.rush.ui.editor.TripEditorScreen
 import io.github.roby222.rush.ui.editor.TripEditorViewModel
 import io.github.roby222.rush.ui.home.HomeScreen
@@ -41,6 +42,15 @@ fun RushApp(vm: MainViewModel, editor: TripEditorViewModel = viewModel()) {
     var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
     val home = vm.home.collectAsStateWithLifecycle().value ?: return
     val draft by editor.draft.collectAsStateWithLifecycle()
+    val creating = screen == Screen.EDITOR && draft.id == 0
+    // Back inside a new trip walks its steps first, then leaves it.
+    val up = {
+        screen = when {
+            creating && editor.back() -> Screen.EDITOR
+            screen == Screen.EDITOR -> Screen.TRIPS
+            else -> Screen.HOME
+        }
+    }
     val edit = { id: Int ->
         editor.open(home.state.trips.firstOrNull { it.id == id } ?: Trip())
         screen = Screen.EDITOR
@@ -56,7 +66,7 @@ fun RushApp(vm: MainViewModel, editor: TripEditorViewModel = viewModel()) {
                 })
             },
             navigationIcon = {
-                if (screen != Screen.HOME) IconButton(onClick = { screen = if (screen == Screen.EDITOR) Screen.TRIPS else Screen.HOME }) {
+                if (screen != Screen.HOME) IconButton(onClick = up) {
                     Icon(painterResource(R.drawable.ic_back), contentDescription = stringResource(R.string.back))
                 }
             },
@@ -79,10 +89,10 @@ fun RushApp(vm: MainViewModel, editor: TripEditorViewModel = viewModel()) {
                     TripsScreen(home.state.trips, onEdit = edit)
                 }
                 Screen.EDITOR -> {
-                    BackHandler { screen = Screen.TRIPS }
-                    TripEditorScreen(editor,
-                        onSaved = { id -> vm.show(id); screen = Screen.HOME },
-                        onDeleted = { screen = Screen.TRIPS })
+                    BackHandler(onBack = up)
+                    val saved = { id: Int -> vm.show(id); screen = Screen.HOME }
+                    if (creating) NewTripScreen(editor, onSaved = saved)
+                    else TripEditorScreen(editor, onSaved = saved, onDeleted = { screen = Screen.TRIPS })
                 }
             }
         }

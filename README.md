@@ -14,8 +14,12 @@ No backend: just AlarmManager, WorkManager and DataStore.
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/editor.png" width="250" alt="Trip editor: name, departure and destination found by search">
+  <img src="docs/screenshots/new-trip.png" width="250" alt="New trip, step 1 of 3: the departure is set, typing the destination opens suggestions with their distance">
   &nbsp;
+  <img src="docs/screenshots/new-trip-when.png" width="250" alt="New trip, step 2 of 3: weekly days, the time is the arrival, and when Rush will check">
+</p>
+
+<p align="center">
   <img src="docs/screenshots/widget.png" width="400" alt="Home-screen widget: trip name, slowdown with minutes and delay, the street, check time and Check now">
 </p>
 
@@ -37,8 +41,9 @@ The UI is in English and Italian, following the device language.
   never does, its result shows in the app or the widget.
 - **Widget**: a home-screen widget (2x1 to 4x2) with one trip's last result, colored like the Home, and a
   "Check now" button. It never calls TomTom itself, and an old result is shown faded with its time.
-- **Local search**: once one place of a trip is set, searching for the other one prefers results within 50 km of it,
-  so a bare street name finds the one in your city.
+- **Address suggestions**: places are picked from suggestions while you type, each with its distance; once one
+  place is set, the other one prefers results within 50 km of it, so a bare street name finds the one in your city.
+- **Guided setup**: a new trip is three short steps (where, when, alerts); editing a trip stays on one screen.
 - **System warnings**: if notifications, background running or exact alarms are not allowed, Home shows a
   warning with a one-tap fix; it disappears as soon as the setting is fixed.
 
@@ -62,8 +67,9 @@ Open the folder in Android Studio and press Run, or:
 ./gradlew testDebugUnitTest # unit tests
 ```
 
-On first launch: allow notifications and tap **Add trip**. Give the trip a name, search for the departure and
-the destination (check the result and tap **Confirm**), pick days and time, then **Save**. More trips, and
+On first launch: allow notifications and tap **Add trip**: three steps. Type the departure and the destination
+and pick each from the suggestions, then pick days and the time (departure or arrival), then when to be told,
+and **Save trip**. More trips, and
 edits, are under the gear. If Home asks to let Rush run in the background, tap **Allow**.
 
 ## Testing without waiting

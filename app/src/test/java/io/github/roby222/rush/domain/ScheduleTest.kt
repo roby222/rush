@@ -14,6 +14,7 @@ import io.github.roby222.rush.work.scheduledWork
 import java.time.DayOfWeek.FRIDAY
 import java.time.DayOfWeek.MONDAY
 import java.time.DayOfWeek.TUESDAY
+import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -50,6 +51,11 @@ class ScheduleTest {
         // An arrival just after midnight is checked the evening before.
         val early = arrive.copy(hour = 0, minute = 10, days = setOf(TUESDAY))
         assertEquals(at(2026, 11, 9, 23, 18), nextCheck(early, at(2026, 11, 9, 20, 0)))
+    }
+
+    @Test fun arrivalCheckTimesForTheEditor() {
+        assertEquals(listOf(LocalTime.of(17, 58), LocalTime.of(18, 18)), arrivalCheckTimes(18, 50, 22))
+        assertEquals(listOf(LocalTime.of(23, 18), LocalTime.of(23, 38)), arrivalCheckTimes(0, 10, 22))  // the evening before
     }
 
     @Test fun oneOffArrivalEndsAfterItsSecondCheck() {

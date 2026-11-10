@@ -4,6 +4,7 @@ import io.github.roby222.rush.model.Trip
 import io.github.roby222.rush.model.TripResult
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalTime
 import java.time.ZonedDateTime
 
 /** A problem result stays in front on the Home for this long. */
@@ -25,12 +26,17 @@ private fun occurrences(t: Trip, now: ZonedDateTime): List<ZonedDateTime> =
     oneOffAt(t, now)?.let(::listOf) ?: (-1L..8L).map { now.toLocalDate().plusDays(it) }
         .filter { it.dayOfWeek in t.days }.map { it.atTime(t.hour, t.minute).atZone(now.zone) }
 
+/** How long before the arrival an arrival trip of [usualMin] minutes is checked: first and second check. */
+fun arrivalLeads(usualMin: Int?): List<Duration> =
+    listOf(FIRST_LEAD, FOLLOW_UP_LEAD).map { it.plusMinutes((usualMin ?: 0).toLong()) }
+
+/** The clock times an arrival at hour:minute is checked at, e.g. 17:58 and 18:18 for 18:50 with 22 min. */
+fun arrivalCheckTimes(hour: Int, minute: Int, usualMin: Int): List<LocalTime> =
+    arrivalLeads(usualMin).map { LocalTime.of(hour, minute).minus(it) }
+
 /** The checks for one occurrence [at]: at that time, or twice before the usual departure of an arrival trip. */
-private fun checksFor(t: Trip, at: ZonedDateTime): List<ZonedDateTime> {
-    if (!t.arriveBy) return listOf(at)
-    val usualDeparture = at.minusMinutes((t.usualMin ?: 0).toLong())
-    return listOf(usualDeparture.minus(FIRST_LEAD), usualDeparture.minus(FOLLOW_UP_LEAD))
-}
+private fun checksFor(t: Trip, at: ZonedDateTime): List<ZonedDateTime> =
+    if (!t.arriveBy) listOf(at) else arrivalLeads(t.usualMin).map { at.minus(it) }
 
 /** The next check of [t] strictly after [now]; null for a weekly trip without days or a one-off trip past its checks. */
 fun nextCheck(t: Trip, now: ZonedDateTime): ZonedDateTime? =

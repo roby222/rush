@@ -33,12 +33,20 @@ import okhttp3.Request
 @Serializable data class Position(val lat: Double, val lon: Double)
 @Serializable data class Address(val freeformAddress: String = "")
 @Serializable data class Poi(val name: String = "")
-@Serializable data class SearchResult(val position: Position, val address: Address = Address(), val poi: Poi? = null) {
-    val label get() = listOfNotNull(poi?.name, address.freeformAddress.ifBlank { null }).joinToString(", ")
+/** One search result; [dist] is the distance in meters from the point the search was near, when there was one. */
+@Serializable data class SearchResult(
+    val position: Position, val address: Address = Address(), val poi: Poi? = null, val dist: Double? = null,
+) {
+    /** "Name, address", without repeating a name the address already starts with (a square, a street). */
+    val label get() = listOfNotNull(poi?.name?.takeUnless { address.freeformAddress.startsWith(it) }, address.freeformAddress.ifBlank { null })
+        .joinToString(", ")
 }
 @Serializable data class SearchResponse(val results: List<SearchResult> = emptyList())
 
 const val NEAR_RADIUS_M = 50_000
+
+/** How many places the address field suggests. */
+const val SUGGESTIONS = 5
 
 class NoRouteException : Exception("No route found")
 
@@ -58,10 +66,14 @@ object TomTom {
         }
     }
 
-    /** Search URL; with [near] results are limited to [NEAR_RADIUS_M] around that point. */
+    /**
+     * Suggestions URL for a query still being typed (`typeahead`); with [near] results are limited to
+     * [NEAR_RADIUS_M] around that point and carry their distance from it.
+     */
     fun searchUrl(query: String, near: Place?): HttpUrl = base()
         .addPathSegments("search/2/search").addPathSegment("$query.json")
-        .addQueryParameter("limit", "1")
+        .addQueryParameter("typeahead", "true")
+        .addQueryParameter("limit", SUGGESTIONS.toString())
         .apply {
             if (near != null) {
                 addQueryParameter("lat", near.lat.toString())
@@ -71,8 +83,8 @@ object TomTom {
         }
         .build()
 
-    fun search(query: String, near: Place?): SearchResult? =
-        json.decodeFromString<SearchResponse>(get(searchUrl(query, near))).results.firstOrNull()
+    fun suggest(query: String, near: Place?): List<SearchResult> =
+        json.decodeFromString<SearchResponse>(get(searchUrl(query, near))).results
 
     fun route(fromLat: Double, fromLon: Double, toLat: Double, toLon: Double): Route {
         val url = base().addPathSegments("routing/1/calculateRoute")

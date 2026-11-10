@@ -5,7 +5,6 @@ import androidx.work.WorkManager
 import io.github.roby222.rush.data.local.deleteTrip
 import io.github.roby222.rush.data.local.saveTrip
 import io.github.roby222.rush.data.local.stateFlow
-import io.github.roby222.rush.data.local.trips
 import io.github.roby222.rush.data.remote.SearchResult
 import io.github.roby222.rush.data.remote.TomTom
 import io.github.roby222.rush.data.remote.toCheck
@@ -31,14 +30,12 @@ class TripRepository(private val ctx: Context) {
     val state: Flow<AppState> = ctx.stateFlow()
 
     /**
-     * Saves [t] and reschedules. An arrival trip needs its usual duration to know when to check: it is
-     * asked to TomTom when the places are new or changed, and a failed call (e.g. offline) fails the save.
+     * Saves [t] and reschedules. An arrival trip needs its usual duration to know when to check: the editor
+     * estimates it once the places are chosen; when that failed it is asked here, and a failure fails the save.
      */
     suspend fun save(t: Trip): Trip {
-        val toSave = if (!t.arriveBy || t.from == null || t.to == null) t else {
-            val old = ctx.trips().firstOrNull { it.id == t.id }
-            t.copy(usualMin = old?.usualMin?.takeIf { old.from == t.from && old.to == t.to } ?: usualMin(t.from, t.to))
-        }
+        val toSave = if (!t.arriveBy || t.usualMin != null || t.from == null || t.to == null) t
+        else t.copy(usualMin = usualMin(t.from, t.to))
         return ctx.saveTrip(toSave).also {
             Scheduler.scheduleAll(ctx)
             // A one-off arrival saved too late for its checks gets one right away (it notifies like a scheduled one).
@@ -48,7 +45,7 @@ class TripRepository(private val ctx: Context) {
     }
 
     /** A first estimate of the usual duration; the trip's first scheduled check refines it (see [Check.usualMin]). */
-    private suspend fun usualMin(from: Place, to: Place): Int =
+    suspend fun usualMin(from: Place, to: Place): Int =
         withContext(Dispatchers.IO) { TomTom.route(from.lat, from.lon, to.lat, to.lon).toCheck("").usualMin }
 
     suspend fun delete(id: Int) {
@@ -65,6 +62,6 @@ class TripRepository(private val ctx: Context) {
     fun checking(id: Int): Flow<Boolean> = WorkManager.getInstance(ctx).getWorkInfosForUniqueWorkFlow(manualWork(id))
         .map { infos -> infos.any { !it.state.isFinished } }
 
-    suspend fun search(query: String, near: Place?): SearchResult? =
-        withContext(Dispatchers.IO) { TomTom.search(query, near) }
+    suspend fun suggest(query: String, near: Place?): List<SearchResult> =
+        withContext(Dispatchers.IO) { TomTom.suggest(query, near) }
 }

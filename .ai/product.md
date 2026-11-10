@@ -33,7 +33,8 @@ A scheduled watcher of a few recurring trips rather than a navigator: it speaks 
 - The time is either when to check (users who know when they leave) or when to arrive: then Rush checks twice before the usual departure and answers "leave by 18:14".
 - Scheduled exact alarm per trip; manual "check now"; threshold in minutes of delay
   (0 = always notify); a manual check shows its result in place and never notifies.
-- Places are searched once and saved as coordinates; search near the other saved place.
+- Places are picked from suggestions while typing and saved as coordinates; suggestions prefer places near the other one.
+- A new trip is set up in three steps (where, when, alerts); an existing one is edited on one screen.
 - No backend; data stays on the device. Sideloaded (uses USE_EXACT_ALARM and the direct battery
   exemption request, both restricted on Google Play).
 - UI languages: English (fallback) and Italian, chosen by the device language.
@@ -45,7 +46,7 @@ A scheduled watcher of a few recurring trips rather than a navigator: it speaks 
 - No specific addresses in code, docs or screenshots; the app stays generic.
 
 ## Evidence on Hand
-- Real screens (demo routes New York and Milan, English): `docs/screenshots/home-traffic.png`, `home-clear.png`, `trips.png`, `editor.png`, `widget.png`.
+- Real screens (demo routes New York and Milan, English): `docs/screenshots/home-traffic.png`, `home-clear.png`, `trips.png`, `new-trip.png` (step 1 with suggestions), `new-trip-when.png` (step 2, arrival), `widget.png`.
 - No users, testimonials or metrics beyond the author.
 
 ## Product Principles

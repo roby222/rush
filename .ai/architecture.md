@@ -7,7 +7,7 @@ No backend: AlarmManager fires a WorkManager job that calls TomTom, saves the re
 Android's recommended architecture (UI layer → data layer, with an optional domain layer), MVVM in the UI. The package is the layer: a change belongs where its package says. `model` depends on nothing; `domain` on `model` and the TomTom route types; the app's screens reach data only through `TripRepository` (the widget, which cannot host a ViewModel, reads `TripStore` directly).
 
 - `ui/` screens, one package each (`home`, `trips`, `editor`), plus `components` and `theme`, read state from a ViewModel and call its actions; they never touch DataStore or WorkManager. `RushApp` is the shell.
-- `ui/MainViewModel`: app state (`HomeUi`: trips, results, the trip in front), system warnings, "check now". `ui/editor/TripEditorViewModel`: the draft (`Draft` in the `SavedStateHandle`), place search, save and delete; `validate(draft, trips)` is pure and tested.
+- `ui/MainViewModel`: app state (`HomeUi`: trips, results, the trip in front), system warnings, "check now". `ui/editor/TripEditorViewModel`: the draft (`Draft` and the new-trip step in the `SavedStateHandle`), place suggestions, the usual-duration estimate, save and delete; `validate(draft, trips)` is pure and tested, and tells which steps are done. `NewTripScreen` (steps) and `TripEditorScreen` (one screen) share the fields in `TripForm.kt`.
 - `data/TripRepository`: the only door to trips and checks. Saving or deleting a trip also reschedules the alarms, so no screen can leave them stale. Its sources: `data/local/TripStore.kt` (DataStore) and `data/remote/TomTom.kt` (HTTP, JSON DTOs, `Route.toCheck`).
 - `model/`: the types every layer shares (`Trip`, `Place`, `TripResult`, `Check`, `TrafficEvent`, `trafficLevel`). They are `@Serializable` and stored as JSON, so renaming a field breaks saved data; moving a class does not.
 - `domain/`: pure rules, no Android types. `Schedule.kt` (`nextTrigger`, `nextCheck`, `expired`, `doneAfterCheck`, `alarmPlan`, `timeConflict`, `featuredTrip`), `CheckOutcome.kt` (`checkOutcome`).
@@ -64,8 +64,9 @@ Logic stays language-free: `Check` and `Outcome` hold numbers and codes (`Traffi
 - Back-to-back sections of the same kind and street are merged into one slowdown.
 - Many sections carry 0 s delay; `Check.notable` keeps closures and sections that cost time, and only those reach the Home and the notification.
 - `trafficLevel` counts minutes first (the user leaves at a fixed time): green up to 2 min of delay, red from 10 min or from +40% over free-flow time, orange between; any closure is red.
-- Search: with the other place saved, `lat`/`lon`/`radius=50000` restrict results near it (`searchUrl`), so the first place of a fresh setup is searched globally. The query goes percent-encoded in the URL path; the user sees and confirms the result before it is saved.
-- Free tier: about 2,500 non-tile requests/day; a check costs one request, a search one.
+- Search: suggestions while typing (`typeahead=true`, `limit=5`), from 3 characters after a 300 ms pause, so about 4–6 requests per field. With the other place saved, `lat`/`lon`/`radius=50000` restrict results near it and each carries `dist` (meters), shown in the list; the first place of a fresh setup is searched globally. The query goes percent-encoded in the URL path. Only a picked suggestion is saved. A place's label is "POI name, address" unless the address already starts with the name (a square).
+- As soon as both places are picked the editor estimates the usual duration with one route call (`TripRepository.usualMin`), so the "when" step can show the check times; save reuses it and asks again only when the estimate failed.
+- Free tier: about 2,500 non-tile requests/day; a check costs one request, each search (one per typing pause) one.
 
 ## Platform choices
 
