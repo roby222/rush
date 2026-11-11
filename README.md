@@ -46,7 +46,8 @@ Debug builds read the key from `local.properties` (ignored by git), so they skip
 TOMTOM_API_KEY=your_key
 ```
 
-Architecture, packages and adb recipes for testing alarms: [.ai/](.ai/AGENTS.md).
+Architecture, packages and adb recipes for testing alarms: [.ai/](.ai/AGENTS.md), the knowledge base coding agents
+read before any change (pattern and tooling: [agent-kb](https://github.com/roby222/agent-kb)).
 
 Rush is meant for sideloading: it uses `USE_EXACT_ALARM` and asks for the battery optimization exemption
 directly, both restricted on Google Play.
